@@ -65,7 +65,7 @@ export function resolveDbConfig(): DbConfig {
     return {
       kind: "none",
       reason:
-        "No database is connected. In Vercel open Storage, create a Turso or Neon (Postgres) database, connect it to this project, then redeploy.",
+        "لا توجد قاعدة بيانات متصلة. في Vercel افتح Storage وأنشئ قاعدة Neon أو Turso واربطها بهذا المشروع ثم أعد النشر.",
     };
   }
   return { kind: "libsql", url: "file:./data/promax.db", source: "local file" };
@@ -139,6 +139,11 @@ async function migrate(s: Store) {
       attempted_at ${big} NOT NULL
     )`,
     `CREATE INDEX IF NOT EXISTS idx_login_attempts ON login_attempts(attempt_key, attempted_at)`,
+    `CREATE TABLE IF NOT EXISTS push_subs (
+      endpoint TEXT PRIMARY KEY,
+      data TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )`,
   ];
   for (const q of stmts) await s.query(q);
 }
@@ -373,4 +378,46 @@ export async function recordLoginFailure(key: string) {
 
 export async function clearLoginFailures(key: string) {
   await (await db()).query("DELETE FROM login_attempts WHERE attempt_key = ?", [key]);
+}
+
+/* ------------------------ admin notifications -------------------------- */
+
+/** Orders newer than the given id, oldest first (for the admin's live new-order alerts). */
+export async function ordersAfter(id: number, limit = 20): Promise<Order[]> {
+  const rows = await (await db()).query("SELECT * FROM orders WHERE id > ? ORDER BY id ASC LIMIT ?", [id, limit]);
+  return rows.map(rowToOrder);
+}
+
+export async function latestOrderId(): Promise<number> {
+  const rows = await (await db()).query("SELECT MAX(id) AS m FROM orders");
+  return Number(rows[0]?.m ?? 0) || 0;
+}
+
+/** Web Push keys are created once and kept in the database, so no extra environment variables are needed. */
+export async function getVapidKeys(create: () => { publicKey: string; privateKey: string }) {
+  const existing = (await readContent("vapid")) as { publicKey?: string; privateKey?: string } | null;
+  if (existing?.publicKey && existing?.privateKey) return existing as { publicKey: string; privateKey: string };
+  const keys = create();
+  await (await db()).query(
+    `INSERT INTO content (id, data, updated_at) VALUES ('vapid', ?, ?) ON CONFLICT (id) DO NOTHING`,
+    [JSON.stringify(keys), new Date().toISOString()],
+  );
+  return (await readContent("vapid")) as { publicKey: string; privateKey: string };
+}
+
+export async function savePushSub(endpoint: string, data: string) {
+  await (await db()).query(
+    `INSERT INTO push_subs (endpoint, data, created_at) VALUES (?, ?, ?)
+     ON CONFLICT (endpoint) DO UPDATE SET data = excluded.data`,
+    [endpoint, data, new Date().toISOString()],
+  );
+}
+
+export async function deletePushSub(endpoint: string) {
+  await (await db()).query("DELETE FROM push_subs WHERE endpoint = ?", [endpoint]);
+}
+
+export async function listPushSubs(): Promise<{ endpoint: string; data: string }[]> {
+  const rows = await (await db()).query("SELECT endpoint, data FROM push_subs");
+  return rows.map((r) => ({ endpoint: String(r.endpoint), data: String(r.data) }));
 }

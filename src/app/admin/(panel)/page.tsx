@@ -1,16 +1,10 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
-import { countOrdersByStatus, databaseStatus, getProduct, getSettings, listOrders } from "@/lib/db";
+import { getProduct, getSettings, listOrders } from "@/lib/db";
 import { ORDER_STATUSES, STATUS_LABEL, formatMoney, isStatus, isValidCurrency } from "@/lib/content";
-
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+import { CountUp, Tilt } from "../LiveTools";
+import { IcPhone, IcSearch } from "../icons";
+import { dayKey, fmtDate } from "../fmt";
 
 export default async function OrdersPage({
   searchParams,
@@ -24,33 +18,33 @@ export default async function OrdersPage({
 
   let data;
   try {
-    const [orders, counts, product, settings] = await Promise.all([
+    const [all, orders, product, settings] = await Promise.all([
+      listOrders({ limit: 500 }),
       listOrders({ status, q }),
-      countOrdersByStatus(),
       getProduct(),
       getSettings(),
     ]);
-    data = { orders, counts, product, settings };
+    data = { all, orders, product, settings };
   } catch (err) {
     console.error("admin orders", err);
-    const dbs = await databaseStatus();
     return (
-      <div className="a-msg a-msg-err" role="alert">
-        <p>
-          <strong>Could not load orders.</strong> {dbs.error ?? "The database did not respond. Reload in a moment."}
-        </p>
+      <div className="soft-card">
+        <h1>تعذّر تحميل الطلبات</h1>
+        <p>أعد تحميل الصفحة بعد قليل.</p>
       </div>
     );
   }
-  const { orders, counts, product, settings } = data;
-  const total = Object.values(counts).reduce((a, b) => a + b, 0);
-
-  const setup: string[] = [];
-  if (!(product.price > 0)) setup.push("Set the product price (Product).");
-  if (!isValidCurrency(settings.currencyCode)) setup.push("Set the currency code (Store settings).");
-  if (!settings.supportPhone) setup.push("Add a support phone number (Store settings).");
-  if (!settings.serviceArea || !settings.deliveryEstimate) setup.push("Add service area and delivery estimate (Store settings).");
-  if (!settings.returnsPolicy) setup.push("Add your returns / exchange policy (Store settings).");
+  const { all, orders, product, settings } = data;
+  const counts: Record<string, number> = {};
+  for (const o of all) counts[o.status] = (counts[o.status] ?? 0) + 1;
+  const today = dayKey(new Date());
+  const todayCount = all.filter((o) => dayKey(o.createdAt) === today).length;
+  const open = all.filter((o) => o.status !== "delivered" && o.status !== "cancelled");
+  const toCollect = open.reduce((s, o) => s + o.totalCents, 0);
+  const delivered = all.filter((o) => o.status === "delivered").reduce((s, o) => s + o.totalCents, 0);
+  const cur = settings.currencyCode;
+  const money = (c: number) => (isValidCurrency(cur) ? formatMoney(c, cur) : String(c / 100));
+  const orderingClosed = !(product.price > 0 && isValidCurrency(cur));
 
   const tab = (s: string) => {
     const params = new URLSearchParams();
@@ -62,112 +56,118 @@ export default async function OrdersPage({
 
   return (
     <>
-      {setup.length > 0 && (
-        <section className="setup" aria-labelledby="setup-title">
-          <h2 id="setup-title">Finish setting up your store</h2>
-          {!(product.price > 0 && isValidCurrency(settings.currencyCode)) && (
-            <p>
-              <strong>Ordering is closed</strong> until the price and currency are set.
-            </p>
-          )}
-          <ul>
-            {setup.map((s) => (
-              <li key={s}>{s}</li>
-            ))}
-          </ul>
-        </section>
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">نظرة عامة</p>
+          <h1>الطلبات</h1>
+        </div>
+      </div>
+
+      {orderingClosed && (
+        <Link href="/admin/product" className="nudge">
+          <span className="nudge-dot" aria-hidden />
+          أضف سعر المنتج لفتح الطلبات في المتجر
+          <span className="nudge-go" aria-hidden>
+            ←
+          </span>
+        </Link>
       )}
 
-      <div className="page-head">
-        <h1>Orders</h1>
+      <section className="stats" aria-label="ملخص">
+        <Tilt className="stat stat-hot">
+          <span className="stat-label">طلبات جديدة</span>
+          <span className="stat-value">
+            <CountUp value={counts.new ?? 0} />
+          </span>
+          <span className="stat-foot">بانتظار التأكيد</span>
+        </Tilt>
+        <Tilt className="stat">
+          <span className="stat-label">طلبات اليوم</span>
+          <span className="stat-value">
+            <CountUp value={todayCount} />
+          </span>
+          <span className="stat-foot">من أصل {all.length} طلب</span>
+        </Tilt>
+        <Tilt className="stat">
+          <span className="stat-label">للتحصيل عند التسليم</span>
+          <span className="stat-value stat-money">{money(toCollect)}</span>
+          <span className="stat-foot">{open.length} طلب مفتوح</span>
+        </Tilt>
+        <Tilt className="stat">
+          <span className="stat-label">تم تحصيله</span>
+          <span className="stat-value stat-money">{money(delivered)}</span>
+          <span className="stat-foot">{counts.delivered ?? 0} طلب تم توصيله</span>
+        </Tilt>
+      </section>
+
+      <div className="toolbar">
+        <nav className="chips" aria-label="تصفية حسب الحالة">
+          <Link href={tab("all")} aria-current={status === "all" ? "page" : undefined}>
+            الكل <span>{all.length}</span>
+          </Link>
+          {ORDER_STATUSES.map((s) => (
+            <Link key={s} href={tab(s)} aria-current={status === s ? "page" : undefined} className={`chip-${s}`}>
+              {STATUS_LABEL[s]} <span>{counts[s] ?? 0}</span>
+            </Link>
+          ))}
+        </nav>
         <form className="search" role="search" action="/admin">
           {status !== "all" && <input type="hidden" name="status" value={status} />}
           <label htmlFor="q" className="sr-only">
-            Search orders
+            ابحث في الطلبات
           </label>
-          <input id="q" name="q" type="search" defaultValue={q} placeholder="Search name, phone, ref, area" />
-          <button className="a-btn" type="submit">
-            Search
-          </button>
+          <IcSearch />
+          <input id="q" name="q" type="search" defaultValue={q} placeholder="ابحث بالاسم أو الهاتف أو رقم الطلب" />
         </form>
       </div>
 
-      <nav className="tabs" aria-label="Filter by status">
-        <Link href={tab("all")} aria-current={status === "all" ? "page" : undefined}>
-          All <span>{total}</span>
-        </Link>
-        {ORDER_STATUSES.map((s) => (
-          <Link key={s} href={tab(s)} aria-current={status === s ? "page" : undefined}>
-            {STATUS_LABEL[s]} <span>{counts[s] ?? 0}</span>
-          </Link>
-        ))}
-      </nav>
-
       {orders.length === 0 ? (
         <div className="empty">
-          {total === 0 ? (
+          <div className="empty-art" aria-hidden>
+            <span />
+            <span />
+            <span />
+          </div>
+          {all.length === 0 ? (
             <>
-              <h2>No orders yet</h2>
-              <p>New cash-on-delivery orders from the store will appear here.</p>
+              <h2>لا توجد طلبات بعد</h2>
+              <p>ستظهر هنا طلبات الدفع عند الاستلام فور وصولها، مع إشعار على هاتفك.</p>
             </>
           ) : (
             <>
-              <h2>No matching orders</h2>
+              <h2>لا توجد نتائج</h2>
               <p>
-                Try another filter or <Link href="/admin">clear the search</Link>.
+                جرّب حالة أخرى أو <Link href="/admin">امسح البحث</Link>.
               </p>
             </>
           )}
         </div>
       ) : (
-        <div className="table-wrap">
-          <table className="orders">
-            <thead>
-              <tr>
-                <th scope="col">Order</th>
-                <th scope="col">Date</th>
-                <th scope="col">Customer</th>
-                <th scope="col">Phone</th>
-                <th scope="col">Area</th>
-                <th scope="col">Item</th>
-                <th scope="col" className="num">
-                  Total
-                </th>
-                <th scope="col">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((o) => (
-                <tr key={o.id}>
-                  <td data-label="Order">
-                    <Link href={`/admin/orders/${o.id}`} className="ref">
-                      {o.ref}
-                    </Link>
-                  </td>
-                  <td data-label="Date">{fmtDate(o.createdAt)}</td>
-                  <td data-label="Customer" dir="auto">
+        <ul className="order-list">
+          {orders.map((o, i) => (
+            <li key={o.id} style={{ "--i": Math.min(i, 12) } as React.CSSProperties}>
+              <Link href={`/admin/orders/${o.id}`} className="order-row">
+                <span className="o-main">
+                  <span className="o-name" dir="auto">
                     {o.customerName}
-                  </td>
-                  <td data-label="Phone">
-                    <a href={`tel:${o.phone}`}>{o.phone}</a>
-                  </td>
-                  <td data-label="Area" dir="auto">
-                    {o.area || "—"}
-                  </td>
-                  <td data-label="Item" dir="auto">
-                    {o.quantity} × {o.color}
-                  </td>
-                  <td data-label="Total" className="num">
-                    {formatMoney(o.totalCents, o.currency, "en")}
-                  </td>
-                  <td data-label="Status">
-                    <span className={`badge badge-${o.status}`}>{STATUS_LABEL[o.status]}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </span>
+                  <span className="o-meta">
+                    <span className="o-ref">{o.ref}</span> · {fmtDate(o.createdAt)}
+                    {o.area ? <> · <span dir="auto">{o.area}</span></> : null}
+                  </span>
+                </span>
+                <span className="o-item" dir="auto">
+                  {o.quantity} × {o.color}
+                </span>
+                <span className="o-total">{formatMoney(o.totalCents, o.currency)}</span>
+                <span className={`badge badge-${o.status}`}>{STATUS_LABEL[o.status]}</span>
+              </Link>
+              <a href={`tel:${o.phone}`} className="o-call" aria-label={`اتصل بـ ${o.customerName}`}>
+                <IcPhone />
+              </a>
+            </li>
+          ))}
+        </ul>
       )}
     </>
   );

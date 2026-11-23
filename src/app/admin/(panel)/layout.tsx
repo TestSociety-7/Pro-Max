@@ -1,40 +1,60 @@
-import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { getSettings } from "@/lib/db";
 import { logout } from "../actions";
+import { LiveTools } from "../LiveTools";
+import { NavLinks } from "../NavLinks";
+import { IcLogout } from "../icons";
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   await requireAdmin();
-  let storeName = "Store";
+  let storeName = "Pro Max";
   try {
-    storeName = (await getSettings()).storeName;
+    storeName = (await getSettings()).storeName || storeName;
   } catch {
-    /* page below shows the DB error */
+    /* the page below shows a friendly message */
   }
   return (
     <div className="panel">
-      <header className="panel-top">
-        <div className="panel-brand">
-          <span className="panel-mark" aria-hidden>
+      <aside className="side">
+        <div className="side-brand">
+          <span className="brand-cube" aria-hidden>
             P
           </span>
-          {storeName} <span className="muted">admin</span>
+          <span>
+            <strong dir="auto">{storeName}</strong>
+            <small>لوحة التحكم</small>
+          </span>
         </div>
-        <nav aria-label="Admin">
-          <Link href="/admin">Orders</Link>
-          <Link href="/admin/product">Product</Link>
-          <Link href="/admin/settings">Store settings</Link>
-          <a href="/" target="_blank" rel="noopener">
-            View store ↗
-          </a>
-        </nav>
-        <form action={logout}>
-          <button type="submit" className="a-btn a-btn-ghost">
-            Sign out
+        <NavLinks />
+        <form action={logout} className="side-out">
+          <button type="submit" className="nav-link">
+            <IcLogout />
+            <span>تسجيل الخروج</span>
           </button>
         </form>
-      </header>
-      <main className="panel-main">{children}</main>
+      </aside>
+
+      <div className="panel-body">
+        <header className="panel-top">
+          <div className="top-brand">
+            <span className="brand-cube" aria-hidden>
+              P
+            </span>
+            <strong dir="auto">{storeName}</strong>
+          </div>
+          <LiveTools />
+          <form action={logout} className="top-out">
+            <button type="submit" className="icon-btn" aria-label="تسجيل الخروج">
+              <IcLogout />
+            </button>
+          </form>
+        </header>
+        <main className="panel-main">{children}</main>
+      </div>
+
+      <nav className="tabbar" aria-label="التنقل">
+        <NavLinks compact />
+      </nav>
     </div>
   );
 }

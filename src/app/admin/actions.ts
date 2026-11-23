@@ -11,6 +11,10 @@ import {
   verifyPassword,
 } from "@/lib/auth";
 import {
+  deletePushSub,
+  latestOrderId,
+  ordersAfter,
+  savePushSub,
   clearLoginFailures,
   getProduct,
   getSettings,
@@ -27,7 +31,9 @@ import {
   type FaqItem,
   type ProductContent,
   type StoreSettings,
+  formatMoney,
 } from "@/lib/content";
+import { vapidPublicKey } from "@/lib/push";
 
 export type FormState = { ok?: boolean; message?: string; errors?: Record<string, string> };
 
@@ -43,7 +49,7 @@ function num(fd: FormData, k: string, errors: Record<string, string>, opts: { mi
   const min = opts.min ?? 0;
   const max = opts.max ?? 10_000_000;
   if (!Number.isFinite(n) || n < min || n > max || (opts.int && !Number.isInteger(n))) {
-    errors[k] = `Enter a ${opts.int ? "whole " : ""}number between ${min} and ${max}.`;
+    errors[k] = `أدخل رقماً ${opts.int ? "صحيحاً " : ""}بين ${min} و ${max}.`;
     return 0;
   }
   return Math.round(n * 100) / 100;
@@ -61,16 +67,16 @@ const lines = (v: string, maxItems = 20) =>
 
 export async function login(_prev: FormState, fd: FormData): Promise<FormState> {
   const problem = authConfigProblem();
-  if (problem) return { message: `Admin sign-in is not configured: ${problem}` };
+  if (problem) return { message: `تسجيل الدخول غير مُعدّ بعد: ${problem}` };
 
   const key = await clientKey();
   if (await tooManyLoginFailures(key)) {
-    return { message: "Too many failed attempts. Wait 15 minutes and try again." };
+    return { message: "محاولات خاطئة كثيرة. انتظر 15 دقيقة ثم حاول مجدداً." };
   }
   const password = typeof fd.get("password") === "string" ? String(fd.get("password")) : "";
   if (!password || password.length > 200 || !verifyPassword(password)) {
     await recordLoginFailure(key);
-    return { message: "That password is not correct." };
+    return { message: "كلمة المرور غير صحيحة." };
   }
   await clearLoginFailures(key);
   await startSession();
@@ -88,11 +94,11 @@ export async function setOrderStatus(_prev: FormState, fd: FormData): Promise<Fo
   await requireAdmin();
   const id = Number(fd.get("id"));
   const status = fd.get("status");
-  if (!Number.isInteger(id) || id < 1 || !isStatus(status)) return { message: "Invalid status update." };
+  if (!Number.isInteger(id) || id < 1 || !isStatus(status)) return { message: "تحديث غير صالح." };
   await updateOrderStatus(id, status, s(fd, "adminNote", 1000));
   revalidatePath("/admin");
   revalidatePath(`/admin/orders/${id}`);
-  return { ok: true, message: "Order updated." };
+  return { ok: true, message: "تم تحديث الطلب." };
 }
 
 /* ------------------------------- product ------------------------------- */
@@ -133,13 +139,13 @@ export async function updateProduct(_prev: FormState, fd: FormData): Promise<For
     faqs,
   };
   if (next.compareAtPrice && next.compareAtPrice <= next.price) {
-    errors.compareAtPrice = "The old price must be higher than the price, or 0 to hide it.";
+    errors.compareAtPrice = "السعر القديم يجب أن يكون أعلى من السعر الحالي، أو 0 لإخفائه.";
   }
-  if (Object.keys(errors).length) return { message: "Fix the highlighted fields.", errors };
+  if (Object.keys(errors).length) return { message: "صحّح الحقول المحددة باللون الأحمر.", errors };
 
   await saveProduct(next);
   revalidatePath("/", "layout");
-  return { ok: true, message: "Product saved. The store page is updated." };
+  return { ok: true, message: "تم حفظ المنتج وتحديث صفحة المتجر." };
 }
 
 /* ------------------------------- settings ------------------------------ */
@@ -150,19 +156,19 @@ export async function updateSettings(_prev: FormState, fd: FormData): Promise<Fo
   const current = await getSettings();
 
   const currencyCode = s(fd, "currencyCode", 3).toUpperCase();
-  if (currencyCode && !isValidCurrency(currencyCode)) errors.currencyCode = "Use a 3-letter currency code such as EGP, SAR, AED.";
+  if (currencyCode && !isValidCurrency(currencyCode)) errors.currencyCode = "استخدم رمز عملة من 3 أحرف مثل ILS.";
 
   const email = s(fd, "supportEmail", 120);
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.supportEmail = "Enter a valid email or leave it empty.";
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.supportEmail = "أدخل بريداً إلكترونياً صحيحاً أو اتركه فارغاً.";
 
   const phone = s(fd, "supportPhone", 30);
-  if (phone && !/^\+?[\d\s()-]{6,24}$/.test(phone)) errors.supportPhone = "Use digits, spaces, + and - only.";
+  if (phone && !/^\+?[\d\s()-]{6,24}$/.test(phone)) errors.supportPhone = "استخدم الأرقام والمسافات و + و - فقط.";
 
   const whatsapp = s(fd, "whatsappNumber", 30);
-  if (whatsapp && !/^\+?[\d\s()-]{6,24}$/.test(whatsapp)) errors.whatsappNumber = "Use the full international number, digits only.";
+  if (whatsapp && !/^\+?[\d\s()-]{6,24}$/.test(whatsapp)) errors.whatsappNumber = "اكتب الرقم الدولي كاملاً، أرقام فقط.";
 
   const accent = s(fd, "accentColor", 7);
-  if (accent && !/^#[0-9a-fA-F]{6}$/.test(accent)) errors.accentColor = "Use a hex color like #f26722.";
+  if (accent && !/^#[0-9a-fA-F]{6}$/.test(accent)) errors.accentColor = "استخدم لوناً بصيغة hex مثل #f26722.";
 
   const next: StoreSettings = {
     storeName: s(fd, "storeName", 60) || current.storeName,
@@ -182,9 +188,54 @@ export async function updateSettings(_prev: FormState, fd: FormData): Promise<Fo
     announcement: s(fd, "announcement", 160),
     accentColor: accent || current.accentColor,
   };
-  if (Object.keys(errors).length) return { message: "Fix the highlighted fields.", errors };
+  if (Object.keys(errors).length) return { message: "صحّح الحقول المحددة باللون الأحمر.", errors };
 
   await saveSettings(next);
   revalidatePath("/", "layout");
-  return { ok: true, message: "Settings saved. The store page is updated." };
+  return { ok: true, message: "تم حفظ الإعدادات وتحديث صفحة المتجر." };
+}
+
+/* ---------------------------- notifications ---------------------------- */
+
+export async function getPushKey(): Promise<string> {
+  await requireAdmin();
+  return vapidPublicKey();
+}
+
+export async function subscribePush(sub: string): Promise<boolean> {
+  await requireAdmin();
+  let parsed: { endpoint?: unknown; keys?: { p256dh?: unknown; auth?: unknown } };
+  try {
+    parsed = JSON.parse(sub);
+  } catch {
+    return false;
+  }
+  const ep = parsed.endpoint;
+  if (typeof ep !== "string" || !/^https:\/\//.test(ep) || ep.length > 1000) return false;
+  if (typeof parsed.keys?.p256dh !== "string" || typeof parsed.keys?.auth !== "string") return false;
+  await savePushSub(ep, JSON.stringify({ endpoint: ep, keys: { p256dh: parsed.keys.p256dh, auth: parsed.keys.auth } }));
+  return true;
+}
+
+export async function unsubscribePush(endpoint: string): Promise<void> {
+  await requireAdmin();
+  if (typeof endpoint === "string" && endpoint.length <= 1000) await deletePushSub(endpoint);
+}
+
+export type NewOrderAlert = { id: number; ref: string; name: string; summary: string };
+
+/** Live alerts while the admin is open: orders created after `afterId`. Pass 0 to just get the current latest id. */
+export async function checkNewOrders(afterId: number): Promise<{ latest: number; orders: NewOrderAlert[] }> {
+  await requireAdmin();
+  if (!Number.isInteger(afterId) || afterId < 1) return { latest: await latestOrderId(), orders: [] };
+  const rows = await ordersAfter(afterId);
+  return {
+    latest: rows.length ? rows[rows.length - 1].id : afterId,
+    orders: rows.map((o) => ({
+      id: o.id,
+      ref: o.ref,
+      name: o.customerName,
+      summary: `${o.quantity} × ${o.color} · ${formatMoney(o.totalCents, o.currency)}`,
+    })),
+  };
 }

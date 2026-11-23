@@ -6,6 +6,8 @@ import { ORDER_STATUSES, STATUS_LABEL, formatMoney } from "@/lib/content";
 import { f } from "@/app/admin/fieldProps";
 import { AdminForm, Field } from "../../../AdminForm";
 import { setOrderStatus } from "../../../actions";
+import { IcArrow, IcPhone } from "../../../icons";
+import { fmtDate } from "../../../fmt";
 
 export default async function OrderPage({ params }: { params: Promise<{ id: string }> }) {
   await requireAdmin();
@@ -14,77 +16,93 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   if (!Number.isInteger(n) || n < 1) notFound();
   const o = await getOrder(n);
   if (!o) notFound();
-  const m = (c: number) => formatMoney(c, o.currency, "en");
+  const m = (c: number) => formatMoney(c, o.currency);
   const wa = o.phone.replace(/[^\d]/g, "");
+  const step = ORDER_STATUSES.indexOf(o.status);
 
   return (
     <>
-      <p>
-        <Link href="/admin">← All orders</Link>
-      </p>
+      <Link href="/admin" className="back">
+        <IcArrow /> كل الطلبات
+      </Link>
       <div className="page-head">
-        <h1>
-          Order <span className="ref">{o.ref}</span>
-        </h1>
-        <span className={`badge badge-${o.status}`}>{STATUS_LABEL[o.status]}</span>
+        <div>
+          <p className="eyebrow">طلب {o.ref}</p>
+          <h1 dir="auto">{o.customerName}</h1>
+        </div>
+        <span className={`badge badge-lg badge-${o.status}`}>{STATUS_LABEL[o.status]}</span>
+      </div>
+
+      {o.status !== "cancelled" && (
+        <ol className="timeline" aria-label="مراحل الطلب">
+          {ORDER_STATUSES.filter((s) => s !== "cancelled").map((s, i) => (
+            <li key={s} className={i <= step ? "done" : ""} aria-current={i === step ? "step" : undefined}>
+              <span className="tl-dot" aria-hidden />
+              {STATUS_LABEL[s]}
+            </li>
+          ))}
+        </ol>
+      )}
+
+      <div className="quick-actions">
+        <a href={`tel:${o.phone}`} className="a-btn a-btn-primary">
+          <IcPhone /> اتصال
+        </a>
+        {wa && (
+          <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer" className="a-btn a-btn-wa">
+            واتساب
+          </a>
+        )}
       </div>
 
       <div className="detail-grid">
         <section className="card">
-          <h2>Customer</h2>
+          <h2>العميل</h2>
           <dl className="dl">
-            <dt>Name</dt>
+            <dt>الاسم</dt>
             <dd dir="auto">{o.customerName}</dd>
-            <dt>Phone</dt>
-            <dd>
+            <dt>الهاتف</dt>
+            <dd dir="ltr" className="ltr-cell">
               <a href={`tel:${o.phone}`}>{o.phone}</a>
-              {wa && (
-                <>
-                  {" · "}
-                  <a href={`https://wa.me/${wa}`} target="_blank" rel="noopener noreferrer">
-                    WhatsApp
-                  </a>
-                </>
-              )}
             </dd>
-            <dt>Address</dt>
+            <dt>العنوان</dt>
             <dd dir="auto">{o.address}</dd>
-            <dt>Area / city</dt>
+            <dt>المدينة / المنطقة</dt>
             <dd dir="auto">{o.area || "—"}</dd>
-            <dt>Delivery note</dt>
+            <dt>ملاحظة التوصيل</dt>
             <dd dir="auto">{o.note || "—"}</dd>
           </dl>
         </section>
 
         <section className="card">
-          <h2>Order</h2>
+          <h2>تفاصيل الطلب</h2>
           <dl className="dl">
-            <dt>Placed</dt>
-            <dd>{new Date(o.createdAt).toLocaleString("en-GB")}</dd>
-            <dt>Product</dt>
+            <dt>التاريخ</dt>
+            <dd>{fmtDate(o.createdAt, true)}</dd>
+            <dt>المنتج</dt>
             <dd dir="auto">{o.productName}</dd>
-            <dt>Color</dt>
+            <dt>اللون</dt>
             <dd dir="auto">{o.color}</dd>
-            <dt>Quantity</dt>
+            <dt>الكمية</dt>
             <dd>{o.quantity}</dd>
-            <dt>Unit price</dt>
+            <dt>سعر القطعة</dt>
             <dd>{m(o.unitPriceCents)}</dd>
-            <dt>Delivery fee</dt>
-            <dd>{m(o.deliveryFeeCents)}</dd>
-            <dt>Collect on delivery</dt>
-            <dd>
-              <strong>{m(o.totalCents)}</strong>
-            </dd>
-            <dt>Payment</dt>
-            <dd>Cash on delivery</dd>
+            <dt>التوصيل</dt>
+            <dd>{o.deliveryFeeCents ? m(o.deliveryFeeCents) : "مجاني"}</dd>
+            <dt>الدفع</dt>
+            <dd>نقداً عند الاستلام</dd>
           </dl>
+          <div className="total-line">
+            <span>المبلغ المطلوب تحصيله</span>
+            <strong>{m(o.totalCents)}</strong>
+          </div>
         </section>
 
         <section className="card">
-          <h2>Update status</h2>
-          <AdminForm action={setOrderStatus} submitLabel="Save status">
+          <h2>تحديث الحالة</h2>
+          <AdminForm action={setOrderStatus} submitLabel="حفظ الحالة">
             <input type="hidden" name="id" value={o.id} />
-            <Field name="status" label="Status">
+            <Field name="status" label="الحالة">
               <select {...f("status")} defaultValue={o.status}>
                 {ORDER_STATUSES.map((s) => (
                   <option key={s} value={s}>
@@ -93,11 +111,11 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                 ))}
               </select>
             </Field>
-            <Field name="adminNote" label="Internal note" hint="Only visible to admins.">
-              <textarea {...f("adminNote")} rows={3} defaultValue={o.adminNote} maxLength={1000} />
+            <Field name="adminNote" label="ملاحظة داخلية" hint="تظهر لك فقط، ولا يراها العميل.">
+              <textarea {...f("adminNote")} rows={3} defaultValue={o.adminNote} maxLength={1000} dir="auto" />
             </Field>
           </AdminForm>
-          <p className="a-hint">Last status change: {new Date(o.statusUpdatedAt).toLocaleString("en-GB")}</p>
+          <p className="a-hint">آخر تحديث: {fmtDate(o.statusUpdatedAt, true)}</p>
         </section>
       </div>
     </>

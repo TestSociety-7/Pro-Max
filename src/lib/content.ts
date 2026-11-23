@@ -125,11 +125,11 @@ export const ORDER_STATUSES = ["new", "confirmed", "shipped", "delivered", "canc
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 export const STATUS_LABEL: Record<OrderStatus, string> = {
-  new: "New",
-  confirmed: "Confirmed",
-  shipped: "Shipped",
-  delivered: "Delivered",
-  cancelled: "Cancelled",
+  new: "جديد",
+  confirmed: "مؤكَّد",
+  shipped: "قيد الشحن",
+  delivered: "تم التوصيل",
+  cancelled: "ملغي",
 };
 
 export function isStatus(v: unknown): v is OrderStatus {

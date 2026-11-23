@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "@fontsource-variable/alexandria"; // self-hosted, no runtime call to Google
 import { getProduct, getSettings } from "@/lib/db";
+import { ICON_METADATA } from "@/lib/pwa";
 import "./store.css";
 
 export const dynamic = "force-dynamic";
@@ -16,9 +17,12 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
       openGraph: { title, description, images: ["/og.jpg"], locale: "ar" },
+      manifest: "/manifest.webmanifest",
+      icons: ICON_METADATA,
+      appleWebApp: { capable: true, title: s.storeName, statusBarStyle: "black-translucent" },
     };
   } catch {
-    return { title: "Pro Max" };
+    return { title: "Pro Max", manifest: "/manifest.webmanifest", icons: ICON_METADATA };
   }
 }
 

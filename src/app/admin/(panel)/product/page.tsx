@@ -12,41 +12,41 @@ export default async function ProductPage() {
   return (
     <>
       <div className="page-head">
-        <h1>Product</h1>
+        <div><p className="eyebrow">المحتوى</p><h1>المنتج</h1></div>
       </div>
       <p className="lead">
-        Customer-facing text is shown in Arabic on the store. Changes go live as soon as you save.
+        كل ما تكتبه هنا يظهر في صفحة المتجر فور الحفظ.
       </p>
 
-      <AdminForm action={updateProduct} submitLabel="Save product" className="admin-form wide">
+      <AdminForm action={updateProduct} submitLabel="حفظ المنتج" className="admin-form wide">
         <fieldset className="card">
-          <legend>Price & availability</legend>
+          <legend>السعر والتوفر</legend>
           <div className="grid-3">
-            <Field name="price" label="Price" hint="In your store currency. Ordering stays closed while this is 0.">
+            <Field name="price" label="السعر (₪)" hint="الطلبات تبقى مغلقة ما دام السعر 0.">
               <input {...f("price")} inputMode="decimal" defaultValue={p.price || ""} placeholder="0" />
             </Field>
-            <Field name="compareAtPrice" label="Old price (optional)" hint="Shown crossed out. Leave empty to hide.">
+            <Field name="compareAtPrice" label="السعر القديم (اختياري)" hint="يظهر مشطوباً. اتركه فارغاً لإخفائه.">
               <input {...f("compareAtPrice")} inputMode="decimal" defaultValue={p.compareAtPrice || ""} />
             </Field>
-            <Field name="maxPerOrder" label="Max quantity per order">
+            <Field name="maxPerOrder" label="أقصى كمية في الطلب">
               <input {...f("maxPerOrder")} inputMode="numeric" defaultValue={p.maxPerOrder} />
             </Field>
           </div>
-          <Field name="availability" label="Availability">
+          <Field name="availability" label="التوفر">
             <select {...f("availability")} defaultValue={p.availability}>
-              <option value="in_stock">In stock — accept orders</option>
-              <option value="sold_out">Sold out — stop orders</option>
+              <option value="in_stock">متوفر، استقبل الطلبات</option>
+              <option value="sold_out">نفد المخزون، أوقف الطلبات</option>
             </select>
           </Field>
           <div className="a-field">
-            <span className="a-label">Colors</span>
+            <span className="a-label">الألوان</span>
             <div className="color-rows">
               {p.colors.map((c) => (
                 <div key={c.key} className="color-row">
-                  <label htmlFor={`color_${c.key}_label`}>{c.key === "black" ? "Black" : "Beige"} — label shown</label>
+                  <label htmlFor={`color_${c.key}_label`}>{c.key === "black" ? "الأسود" : "البيج"}، الاسم الظاهر</label>
                   <input id={`color_${c.key}_label`} name={`color_${c.key}_label`} defaultValue={c.label} dir="auto" />
                   <label className="check">
-                    <input type="checkbox" name={`color_${c.key}_available`} defaultChecked={c.available} /> Available
+                    <input type="checkbox" name={`color_${c.key}_available`} defaultChecked={c.available} /> متوفر
                   </label>
                 </div>
               ))}
@@ -55,53 +55,53 @@ export default async function ProductPage() {
         </fieldset>
 
         <fieldset className="card">
-          <legend>Opening scene</legend>
+          <legend>الواجهة الرئيسية</legend>
           <div className="grid-2">
-            <Field name="name" label="Product name">
+            <Field name="name" label="اسم المنتج">
               <input {...f("name")} defaultValue={p.name} dir="auto" />
             </Field>
-            <Field name="modelNumber" label="Model / item number">
+            <Field name="modelNumber" label="رقم الموديل">
               <input {...f("modelNumber")} defaultValue={p.modelNumber} />
             </Field>
           </div>
-          <Field name="headline" label="Headline" hint='Keep "7 في 1" in the text to get the large orange 7-in-1 styling.'>
+          <Field name="headline" label="العنوان الرئيسي" hint='اترك «7 في 1» في النص ليظهر بالخط البرتقالي الكبير.'>
             <input {...f("headline")} defaultValue={p.headline} dir="auto" />
           </Field>
-          <Field name="subheadline" label="Sub-headline">
+          <Field name="subheadline" label="العنوان الفرعي">
             <input {...f("subheadline")} defaultValue={p.subheadline} dir="auto" />
           </Field>
-          <Field name="keyBenefit" label="Key benefit line">
+          <Field name="keyBenefit" label="الميزة الأساسية">
             <input {...f("keyBenefit")} defaultValue={p.keyBenefit} dir="auto" />
           </Field>
         </fieldset>
 
         <fieldset className="card">
-          <legend>Product story</legend>
-          <Field name="story" label="Short story paragraph">
+          <legend>قصة المنتج</legend>
+          <Field name="story" label="فقرة تعريفية قصيرة">
             <textarea {...f("story")} rows={3} defaultValue={p.story} dir="auto" />
           </Field>
           <div className="grid-2">
-            <Field name="benefits" label="Benefits" hint="One per line. Up to 6 look best.">
+            <Field name="benefits" label="المزايا" hint="ميزة في كل سطر. 6 مزايا تبدو الأفضل.">
               <textarea {...f("benefits")} rows={7} defaultValue={p.benefits.join("\n")} dir="auto" />
             </Field>
-            <Field name="functions" label="Functions" hint="One per line.">
+            <Field name="functions" label="الوظائف" hint="وظيفة في كل سطر.">
               <textarea {...f("functions")} rows={7} defaultValue={p.functions.join("\n")} dir="auto" />
             </Field>
-            <Field name="uses" label="What it cuts (strip under the opening)" hint="One per line.">
+            <Field name="uses" label="ماذا يقطّع (الشريط تحت الواجهة)" hint="عنصر في كل سطر.">
               <textarea {...f("uses")} rows={6} defaultValue={p.uses.join("\n")} dir="auto" />
             </Field>
-            <Field name="included" label="What's in the box" hint="One per line. Hidden while empty — please confirm the exact contents.">
+            <Field name="included" label="محتويات العلبة" hint="عنصر في كل سطر. لا يظهر القسم إذا كان فارغاً.">
               <textarea {...f("included")} rows={6} defaultValue={p.included.join("\n")} dir="auto" />
             </Field>
           </div>
         </fieldset>
 
         <fieldset className="card">
-          <legend>FAQs</legend>
+          <legend>الأسئلة الشائعة</legend>
           <Field
             name="faqs"
-            label="Questions and answers"
-            hint="First line is the question, the next line(s) the answer. Leave one empty line between FAQs."
+            label="الأسئلة والأجوبة"
+            hint="السطر الأول هو السؤال والأسطر التالية الجواب. اترك سطراً فارغاً بين كل سؤال وآخر."
           >
             <textarea {...f("faqs")} rows={12} defaultValue={faqText} dir="auto" />
           </Field>
