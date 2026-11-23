@@ -1245,6 +1245,56 @@ h2 {
   outline: 2px solid var(--text);
   outline-offset: 2px;
 }
+.zone-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 6px;
+}
+.zone-option {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 12px 8px;
+  border-radius: 14px;
+  border: 1px solid var(--line-2);
+  background: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s,
+    background-color 0.2s,
+    transform 0.25s var(--ease);
+}
+.zone-option input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.zone-name {
+  font-weight: 700;
+}
+.zone-fee {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.zone-option:has(input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  transform: translateY(-2px);
+}
+.zone-option:has(input:checked) .zone-fee {
+  color: var(--accent);
+  font-weight: 700;
+}
+.zone-option:has(input:focus-visible) {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
 .qty {
   display: inline-flex;
   align-items: center;
@@ -1307,22 +1357,6 @@ h2 {
 .cod-note strong {
   color: var(--text);
 }
-.consent label {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  font-size: 0.86rem;
-  color: var(--muted);
-  font-weight: 350;
-  cursor: pointer;
-}
-.consent input {
-  width: 22px;
-  height: 22px;
-  margin-top: 3px;
-  accent-color: var(--accent);
-  flex: none;
-}
 .form-error {
   background: rgba(255, 90, 70, 0.12);
   border: 1px solid rgba(255, 120, 100, 0.35);
@@ -1356,6 +1390,81 @@ h2 {
 }
 .order-success:focus {
   outline: none;
+}
+.celebrate {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 80;
+  pointer-events: none;
+}
+.order-success {
+  perspective: 900px;
+  animation: success-in 0.9s var(--ease) both;
+}
+@keyframes success-in {
+  from {
+    opacity: 0;
+    transform: rotateX(28deg) translateY(30px) scale(0.94);
+  }
+}
+.success-3d {
+  position: relative;
+  width: 170px;
+  height: 200px;
+  display: grid;
+  place-items: center;
+  perspective: 600px;
+}
+.success-3d img {
+  position: relative;
+  z-index: 1;
+  height: 190px;
+  width: auto;
+  filter: drop-shadow(0 24px 24px rgba(0, 0, 0, 0.7));
+  animation: success-spin 1.6s var(--ease) both;
+}
+@keyframes success-spin {
+  from {
+    transform: rotateY(-200deg) translateY(-40px) scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+}
+.success-ring {
+  position: absolute;
+  bottom: 4px;
+  width: 170px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  box-shadow:
+    0 0 30px color-mix(in srgb, var(--accent) 60%, transparent),
+    inset 0 0 20px color-mix(in srgb, var(--accent) 40%, transparent);
+  animation: ring-pop 1s 0.3s var(--ease) both;
+}
+@keyframes ring-pop {
+  from {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+}
+.success-3d .success-badge {
+  position: absolute;
+  z-index: 2;
+  bottom: 10px;
+  inset-inline-end: 0;
+  width: 54px;
+  height: 54px;
+  animation: badge-pop 0.6s 1s var(--ease) both;
+}
+@keyframes badge-pop {
+  from {
+    transform: scale(0) rotate(-90deg);
+  }
 }
 .success-badge {
   display: grid;
@@ -1468,4 +1577,315 @@ h2 {
   .footer {
     padding-bottom: 44px;
   }
+}
+
+/* ---------- spotlight: scroll-driven 3D close-up ---------- */
+.spotlight {
+  --p: 0;
+  --zoom: 1;
+  --ox: 50%;
+  --oy: 50%;
+  position: relative;
+  height: 420svh;
+}
+.spot-sticky {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: 76px var(--gutter) calc(96px + env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+.spot-head h2 {
+  font-size: clamp(1.6rem, 6vw, 3rem);
+  line-height: 1.15;
+}
+.spot-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  perspective: 1400px;
+  overflow: hidden;
+  mask-image: radial-gradient(120% 90% at 50% 50%, #000 60%, transparent 100%);
+  -webkit-mask-image: radial-gradient(120% 90% at 50% 50%, #000 60%, transparent 100%);
+}
+.spot-glow {
+  position: absolute;
+  width: min(80vw, 620px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 34%, transparent), transparent);
+  filter: blur(20px);
+  opacity: calc(0.5 + var(--p) * 0.5);
+}
+.spot-product {
+  position: relative;
+  height: min(46svh, 560px);
+  aspect-ratio: 776 / 1400;
+  transform-origin: var(--ox) var(--oy);
+  transform: rotateY(calc(-28deg + var(--p) * 56deg)) rotateX(calc(4deg - var(--p) * 6deg)) scale(var(--zoom));
+  transform-style: preserve-3d;
+  transition:
+    transform-origin 0.9s var(--ease),
+    transform 0.9s var(--ease);
+}
+.spot-product img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 40px 40px rgba(0, 0, 0, 0.75)) drop-shadow(0 0 1px rgba(255, 255, 255, 0.2));
+}
+.spot-pin {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent);
+  transform: translateZ(30px) scale(0);
+  transition: transform 0.5s var(--ease);
+}
+.spot-pin.on {
+  transform: translateZ(30px) scale(calc(1 / var(--zoom)));
+}
+.spot-pin.on::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  animation: pin-ping 1.6s ease-out infinite;
+}
+@keyframes pin-ping {
+  to {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+.spot-floor {
+  position: absolute;
+  bottom: 4%;
+  width: min(70vw, 460px);
+  height: 40px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.8), transparent);
+}
+.spot-callouts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  min-height: 92px;
+}
+.spot-callouts li {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line-2);
+  background: rgba(14, 12, 11, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  opacity: 0;
+  transform: translateY(16px) rotateX(-20deg);
+  transition:
+    opacity 0.5s var(--ease),
+    transform 0.6s var(--ease);
+}
+.spot-callouts li.on {
+  opacity: 1;
+  transform: none;
+}
+.spot-callouts strong {
+  font-size: 1.1rem;
+}
+.spot-callouts li > span:last-child {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+.spot-num {
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+.spot-progress {
+  position: absolute;
+  inset-inline: var(--gutter);
+  bottom: 10px;
+  height: 2px;
+  background: var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.spot-progress span {
+  display: block;
+  height: 100%;
+  width: calc(var(--p) * 100%);
+  background: linear-gradient(90deg, var(--accent), #ffb27f);
+}
+@media (min-width: 960px) {
+  .spot-sticky {
+    grid-template-columns: 1fr 1.1fr;
+    grid-template-rows: auto 1fr;
+    column-gap: 40px;
+    padding: 90px max(var(--gutter), calc((100vw - 1180px) / 2)) 40px;
+  }
+  .spot-head {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: end;
+  }
+  .spot-stage {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+  .spot-product {
+    height: min(74svh, 720px);
+  }
+  .spot-callouts {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+    margin-top: 28px;
+    display: grid;
+    gap: 10px;
+    min-height: 0;
+  }
+  .spot-callouts li {
+    position: relative;
+    inset: auto;
+    opacity: 0.35;
+    transform: none;
+    background: transparent;
+    border-color: transparent;
+    backdrop-filter: none;
+  }
+  .spot-callouts li.on {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.04);
+    border-color: var(--line-2);
+    transform: translateX(-8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spotlight {
+    height: auto;
+  }
+  .spot-sticky {
+    position: relative;
+    height: auto;
+  }
+  .spot-product {
+    transform: none;
+  }
+  .spot-callouts li {
+    position: relative;
+    opacity: 1;
+    transform: none;
+    margin-bottom: 8px;
+  }
+}
+
+/* ---------- disc ring: real discs on a 3D carousel ---------- */
+.discs {
+  padding: 80px var(--gutter) 40px;
+  text-align: center;
+  overflow: hidden;
+}
+.discs-head h2 {
+  font-size: clamp(1.6rem, 6vw, 2.8rem);
+}
+.discs-text {
+  color: var(--muted);
+  margin: 8px auto 0;
+  max-width: 46ch;
+}
+.disc-scene {
+  position: relative;
+  max-width: 820px;
+  height: clamp(280px, 52vw, 400px);
+  margin: 30px auto 0;
+  perspective: 1100px;
+  touch-action: pan-y;
+  cursor: grab;
+  user-select: none;
+}
+.disc-scene:active {
+  cursor: grabbing;
+}
+.disc-ring {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+.disc-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin: 0;
+  width: clamp(120px, 28vw, 190px);
+  transition: filter 0.4s;
+  filter: brightness(0.55) saturate(0.8);
+}
+.disc-card.on {
+  filter: brightness(1.08) drop-shadow(0 0 30px color-mix(in srgb, var(--accent) 40%, transparent));
+}
+.disc-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 26px 20px rgba(0, 0, 0, 0.7));
+  animation: disc-bob 3.2s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.6s);
+}
+@keyframes disc-bob {
+  50% {
+    transform: translateY(-10px) rotate(-3deg);
+  }
+}
+.disc-floor {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  width: min(90vw, 760px);
+  height: 70px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%),
+    radial-gradient(closest-side, rgba(255, 255, 255, 0.05), transparent);
+}
+.disc-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.disc-tabs button {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: var(--glass);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    color 0.2s,
+    background-color 0.2s,
+    border-color 0.2s;
+}
+.disc-tabs button[aria-selected="true"] {
+  color: var(--text);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
 }

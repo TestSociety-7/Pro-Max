@@ -10,7 +10,7 @@ export type OrderInput = {
   note: string;
   color: string;
   quantity: number;
-  consent: boolean;
+  zone: string;
 };
 
 export type FieldErrors = Partial<Record<keyof OrderInput, string>>;
@@ -29,6 +29,8 @@ export function normalizeDigits(s: string): string {
 export function cleanPhone(raw: string): string {
   return normalizeDigits(raw).replace(/[^\d+]/g, "").replace(/(?!^)\+/g, "");
 }
+
+const ZONES = ["inside", "westbank"];
 
 export function validateOrder(
   input: OrderInput,
@@ -56,6 +58,6 @@ export function validateOrder(
   if (!Number.isInteger(q) || q < 1) e.quantity = "الكمية يجب أن تكون 1 على الأقل.";
   else if (q > opts.maxPerOrder) e.quantity = `الحد الأقصى ${opts.maxPerOrder} قطع في الطلب الواحد.`;
 
-  if (!input.consent) e.consent = "يرجى الموافقة على استخدام بياناتك لتوصيل الطلب.";
+  if (!ZONES.includes(input.zone)) e.zone = "اختر منطقة التوصيل.";
   return e;
 }

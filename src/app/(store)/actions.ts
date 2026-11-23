@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { createOrder, getProduct, getSettings } from "@/lib/db";
 import { notifyAdmins } from "@/lib/push";
 import { after } from "next/server";
-import { deliveryFeeCents, formatMoney, orderingOpen, toCents } from "@/lib/content";
+import { DELIVERY_ZONES, deliveryFeeCents, formatMoney, isZone, orderingOpen, toCents } from "@/lib/content";
 import { cleanPhone, normalizeDigits, validateOrder, type FieldErrors, type OrderInput } from "@/lib/validation";
 
 export type OrderState =
@@ -54,12 +54,12 @@ export async function placeOrder(_prev: OrderState, fd: FormData): Promise<Order
     note: str(fd, "note"),
     color: str(fd, "color"),
     quantity: str(fd, "quantity"),
+    zone: str(fd, "zone"),
   };
 
   const input: OrderInput = {
     ...values,
     quantity: Number(normalizeDigits(values.quantity)),
-    consent: str(fd, "consent") === "on",
   };
 
   let product, settings;
@@ -91,7 +91,9 @@ export async function placeOrder(_prev: OrderState, fd: FormData): Promise<Order
 
   const unit = toCents(product.price);
   const subtotal = unit * input.quantity;
-  const fee = deliveryFeeCents(settings, subtotal);
+  const zone = isZone(input.zone) ? input.zone : "inside";
+  const zoneLabel = DELIVERY_ZONES.find((z) => z.key === zone)!.label;
+  const fee = deliveryFeeCents(settings, subtotal, zone);
   const colorLabel = availableColors.find((c) => c.key === input.color)!.label;
 
   try {
@@ -100,7 +102,7 @@ export async function placeOrder(_prev: OrderState, fd: FormData): Promise<Order
       customerName: input.name.trim(),
       phone: cleanPhone(input.phone),
       address: input.address.trim(),
-      area: input.area.trim(),
+      area: [zoneLabel, input.area.trim()].filter(Boolean).join(" · "),
       note: input.note.trim(),
       color: colorLabel,
       quantity: input.quantity,

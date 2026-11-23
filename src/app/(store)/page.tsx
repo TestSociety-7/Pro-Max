@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { getProduct, getSettings } from "@/lib/db";
-import { DEFAULT_PRODUCT, DEFAULT_SETTINGS, formatMoney, orderingOpen, toCents } from "@/lib/content";
+import { DEFAULT_PRODUCT, DEFAULT_SETTINGS, DELIVERY_ZONES, formatMoney, orderingOpen, toCents, zoneFee } from "@/lib/content";
 import { ProductPicture } from "./ProductPicture";
 import { OrderForm } from "./OrderForm";
 import { ColorShowcase, RevealController, StickyOrder } from "./client";
 import { ProductStage } from "./stage/ProductStage";
+import { DiscRing, Spotlight } from "./showcase";
 import { BenefitIcons, CallIcon, CashIcon, CheckIcon, PhoneIcon, TruckIcon } from "./icons";
 
 export default async function Home() {
@@ -25,15 +26,14 @@ export default async function Home() {
     priceSet && product.compareAtPrice > product.price
       ? formatMoney(toCents(product.compareAtPrice), settings.currencyCode)
       : "";
-  const fee = toCents(settings.deliveryFee);
+  const zones = DELIVERY_ZONES.map((z) => ({ key: z.key, label: z.label, feeCents: zoneFee(settings, z.key) }));
   const feeText = !settings.currencyCode
     ? ""
-    : fee === 0
-      ? "التوصيل مجاني"
-      : `رسوم التوصيل ${formatMoney(fee, settings.currencyCode)}` +
-        (settings.freeDeliveryFrom > 0
-          ? ` — مجاني للطلبات من ${formatMoney(toCents(settings.freeDeliveryFrom), settings.currencyCode)}`
-          : "");
+    : "رسوم التوصيل: " +
+      zones.map((z) => `${z.label} ${z.feeCents ? formatMoney(z.feeCents, settings.currencyCode) : "مجاني"}`).join("، ") +
+      (settings.freeDeliveryFrom > 0
+        ? `. مجاني للطلبات من ${formatMoney(toCents(settings.freeDeliveryFrom), settings.currencyCode)}`
+        : "");
   const phone = settings.supportPhone.trim();
   const whatsapp = settings.whatsappNumber.replace(/[^\d]/g, "");
   const accent = /^#[0-9a-fA-F]{6}$/.test(settings.accentColor) ? settings.accentColor : DEFAULT_SETTINGS.accentColor;
@@ -159,6 +159,8 @@ export default async function Home() {
           </section>
         )}
 
+        <Spotlight src="/product/cut-black.webp" alt={`${product.name} باللون الأسود من قريب`} />
+
         {/* 2. Product story */}
         <section className="story" id="story" aria-labelledby="story-title">
           <div className="story-head" data-reveal>
@@ -208,6 +210,8 @@ export default async function Home() {
             />
           </div>
         </section>
+
+        <DiscRing />
 
         <section className="poster" aria-label="نظرة شاملة" data-reveal>
           <ProductPicture
@@ -267,7 +271,7 @@ export default async function Home() {
             </div>
             <div data-reveal>
               <h3>الدعم</h3>
-              {phone || whatsapp || settings.supportEmail ? (
+              {phone || whatsapp ? (
                 <ul className="contact-list">
                   {phone && (
                     <li>
@@ -280,11 +284,6 @@ export default async function Home() {
                       <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer" dir="ltr">
                         +{whatsapp}
                       </a>
-                    </li>
-                  )}
-                  {settings.supportEmail && (
-                    <li>
-                      بريد: <a href={`mailto:${settings.supportEmail}`}>{settings.supportEmail}</a>
                     </li>
                   )}
                   {settings.supportHours && <li>{settings.supportHours}</li>}
@@ -346,11 +345,10 @@ export default async function Home() {
                 open={open}
                 unitCents={toCents(product.price)}
                 currency={settings.currencyCode}
-                deliveryFeeCents={fee}
+                zones={zones}
                 freeDeliveryFromCents={toCents(settings.freeDeliveryFrom)}
                 maxPerOrder={product.maxPerOrder}
                 colors={product.colors}
-                privacyNote={settings.privacyNote}
                 supportPhone={phone}
                 deliveryEstimate={settings.deliveryEstimate}
               />
@@ -364,7 +362,6 @@ export default async function Home() {
           <strong dir="ltr">{settings.storeName}</strong>
           {settings.tagline && <span> — {settings.tagline}</span>}
         </div>
-        {settings.businessAddress && <p>{settings.businessAddress}</p>}
         <p className="muted">
           © {new Date().getFullYear()} {settings.storeName}
         </p>

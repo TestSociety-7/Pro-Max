@@ -45,26 +45,23 @@ export default async function SettingsPage() {
             <Field name="whatsappNumber" label="رقم واتساب" hint="الرقم الدولي كاملاً، مثال: 972500000000+">
               <input {...f("whatsappNumber")} type="tel" defaultValue={s.whatsappNumber} dir="ltr" />
             </Field>
-            <Field name="supportEmail" label="البريد الإلكتروني">
-              <input {...f("supportEmail")} type="email" defaultValue={s.supportEmail} />
-            </Field>
             <Field name="supportHours" label="ساعات الدعم">
               <input {...f("supportHours")} defaultValue={s.supportHours} dir="auto" placeholder="مثال: يومياً من 10 صباحاً حتى 10 مساءً" />
             </Field>
           </div>
-          <Field name="businessAddress" label="عنوان النشاط (اختياري)" hint="يظهر في التذييل.">
-            <input {...f("businessAddress")} defaultValue={s.businessAddress} dir="auto" />
-          </Field>
         </fieldset>
 
         <fieldset className="card">
           <legend>العملة والتوصيل</legend>
-          <div className="grid-3">
+          <div className="grid-2">
             <Field name="currencyCode" label="العملة" hint="ILS = شيكل (₪).">
               <input {...f("currencyCode")} defaultValue={s.currencyCode} maxLength={3} style={{ textTransform: "uppercase" }} />
             </Field>
-            <Field name="deliveryFee" label="رسوم التوصيل" hint="0 = توصيل مجاني.">
+            <Field name="deliveryFee" label="التوصيل للداخل (₪)" hint="0 = توصيل مجاني.">
               <input {...f("deliveryFee")} inputMode="decimal" defaultValue={s.deliveryFee || ""} placeholder="0" />
+            </Field>
+            <Field name="deliveryFeeWestBank" label="التوصيل للضفة (₪)" hint="0 = توصيل مجاني.">
+              <input {...f("deliveryFeeWestBank")} inputMode="decimal" defaultValue={s.deliveryFeeWestBank || ""} placeholder="0" />
             </Field>
             <Field name="freeDeliveryFrom" label="توصيل مجاني ابتداءً من (اختياري)" hint="قيمة الطلب. اتركه فارغاً لإلغائه.">
               <input {...f("freeDeliveryFrom")} inputMode="decimal" defaultValue={s.freeDeliveryFrom || ""} />
@@ -84,9 +81,6 @@ export default async function SettingsPage() {
           <legend>السياسات</legend>
           <Field name="returnsPolicy" label="سياسة الإرجاع والاستبدال" hint="إذا تركته فارغاً يظهر «تواصل معنا بخصوص الإرجاع».">
             <textarea {...f("returnsPolicy")} rows={4} defaultValue={s.returnsPolicy} dir="auto" />
-          </Field>
-          <Field name="privacyNote" label="نص الموافقة في نموذج الطلب" hint="يوافق عليه العميل قبل الطلب.">
-            <textarea {...f("privacyNote")} rows={3} defaultValue={s.privacyNote} dir="auto" />
           </Field>
         </fieldset>
       </AdminForm>
