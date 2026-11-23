@@ -1,5 +1,4 @@
 import "server-only";
-import { createClient, type Client } from "@libsql/client";
 import { randomBytes } from "node:crypto";
 import {
   DEFAULT_PRODUCT,
@@ -10,95 +9,189 @@ import {
   withDefaults,
 } from "./content";
 
-// One libSQL client per server process. Locally this is a SQLite file;
-// in production point DATABASE_URL at a hosted libSQL database (e.g. Turso).
-let client: Client | null = null;
+// Storage adapter. Works with either:
+//  - libSQL / SQLite: a local file in development, Turso in production
+//  - Postgres: e.g. Neon or Supabase connected from Vercel → Storage
+// The connection is found from the environment variables those integrations set,
+// so whichever database is connected in Vercel is picked up without code changes.
+
+type Row = Record<string, unknown>;
+type Arg = string | number | null;
+interface Store {
+  kind: "libsql" | "postgres";
+  query(sql: string, args?: Arg[]): Promise<Row[]>;
+}
+
+export class DbNotConfiguredError extends Error {}
+
+type DbConfig =
+  | { kind: "libsql"; url: string; authToken?: string; source: string }
+  | { kind: "postgres"; url: string; source: string }
+  | { kind: "none"; reason: string };
+
+const isPg = (v?: string) => !!v && /^postgres(ql)?:\/\//i.test(v);
+const isLibsql = (v?: string) => !!v && /^(libsql|wss?|https?):\/\//i.test(v) && !isPg(v);
+
+/** Figure out which database to use from environment variables. */
+export function resolveDbConfig(): DbConfig {
+  const env = process.env;
+  const keys = Object.keys(env);
+
+  // 1. Explicit
+  if (isPg(env.DATABASE_URL)) return { kind: "postgres", url: env.DATABASE_URL!, source: "DATABASE_URL" };
+  if (env.DATABASE_URL && (isLibsql(env.DATABASE_URL) || env.DATABASE_URL.startsWith("file:")))
+    return { kind: "libsql", url: env.DATABASE_URL, authToken: env.DATABASE_AUTH_TOKEN || env.TURSO_AUTH_TOKEN || undefined, source: "DATABASE_URL" };
+
+  // 2. Turso (Vercel Marketplace may add a custom prefix, e.g. STORAGE_TURSO_DATABASE_URL)
+  const tursoKey = keys.find((k) => k.endsWith("TURSO_DATABASE_URL") && isLibsql(env[k]));
+  if (tursoKey) {
+    const prefix = tursoKey.slice(0, -"TURSO_DATABASE_URL".length);
+    const token = env[`${prefix}TURSO_AUTH_TOKEN`] || env.TURSO_AUTH_TOKEN || keys.map((k) => (k.endsWith("TURSO_AUTH_TOKEN") ? env[k] : undefined)).find(Boolean);
+    return { kind: "libsql", url: env[tursoKey]!, authToken: token || undefined, source: tursoKey };
+  }
+
+  // 3. Postgres (Neon / Supabase / Vercel Postgres, possibly prefixed)
+  const pgKey =
+    ["POSTGRES_URL", "DATABASE_URL_UNPOOLED", "POSTGRES_PRISMA_URL"].find((k) => isPg(env[k])) ??
+    keys.find((k) => /(DATABASE_URL|POSTGRES_URL)$/.test(k) && isPg(env[k]));
+  if (pgKey) return { kind: "postgres", url: env[pgKey]!, source: pgKey };
+
+  // 4. Any libsql:// value
+  const anyLibsql = keys.find((k) => env[k]?.startsWith("libsql://"));
+  if (anyLibsql) return { kind: "libsql", url: env[anyLibsql]!, authToken: env.TURSO_AUTH_TOKEN, source: anyLibsql };
+
+  // 5. Local development fallback. Vercel's filesystem is read-only, so not there.
+  if (env.VERCEL) {
+    return {
+      kind: "none",
+      reason:
+        "No database is connected. In Vercel open Storage, create a Turso or Neon (Postgres) database, connect it to this project, then redeploy.",
+    };
+  }
+  return { kind: "libsql", url: "file:./data/promax.db", source: "local file" };
+}
+
+let store: Store | null = null;
 let ready: Promise<void> | null = null;
 
-function getClient(): Client {
-  if (!client) {
-    // TURSO_* names are what the Vercel Marketplace Turso integration sets.
-    const url = process.env.DATABASE_URL || process.env.TURSO_DATABASE_URL || "file:./data/promax.db";
-    const authToken = process.env.DATABASE_AUTH_TOKEN || process.env.TURSO_AUTH_TOKEN || undefined;
-    client = createClient({ url, authToken });
+async function makeStore(): Promise<Store> {
+  const cfg = resolveDbConfig();
+  if (cfg.kind === "none") throw new DbNotConfiguredError(cfg.reason);
+  if (cfg.kind === "postgres") {
+    const { default: postgres } = await import("postgres");
+    const sql = postgres(cfg.url, { ssl: /localhost|127\.0\.0\.1/.test(cfg.url) ? false : "require", max: 3, prepare: false });
+    return {
+      kind: "postgres",
+      async query(text, args = []) {
+        let i = 0;
+        const pgText = text.replace(/\?/g, () => `$${++i}`);
+        const rows = await sql.unsafe(pgText, args as never[]);
+        return rows as unknown as Row[];
+      },
+    };
   }
-  return client;
+  const { createClient } = await import("@libsql/client");
+  const c = createClient({ url: cfg.url, authToken: cfg.authToken });
+  return {
+    kind: "libsql",
+    async query(text, args = []) {
+      const rs = await c.execute({ sql: text, args });
+      return rs.rows as unknown as Row[];
+    },
+  };
 }
 
-async function migrate(db: Client) {
-  await db.batch(
-    [
-      `CREATE TABLE IF NOT EXISTS content (
-        id TEXT PRIMARY KEY,
-        data TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      )`,
-      `CREATE TABLE IF NOT EXISTS orders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ref TEXT NOT NULL UNIQUE,
-        idempotency_key TEXT NOT NULL UNIQUE,
-        created_at TEXT NOT NULL,
-        customer_name TEXT NOT NULL,
-        phone TEXT NOT NULL,
-        address TEXT NOT NULL,
-        area TEXT NOT NULL DEFAULT '',
-        note TEXT NOT NULL DEFAULT '',
-        color TEXT NOT NULL DEFAULT '',
-        quantity INTEGER NOT NULL,
-        unit_price_cents INTEGER NOT NULL,
-        delivery_fee_cents INTEGER NOT NULL,
-        total_cents INTEGER NOT NULL,
-        currency TEXT NOT NULL,
-        product_name TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'new',
-        status_updated_at TEXT NOT NULL,
-        admin_note TEXT NOT NULL DEFAULT ''
-      )`,
-      `CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, created_at)`,
-      `CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at)`,
-      `CREATE TABLE IF NOT EXISTS login_attempts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        key TEXT NOT NULL,
-        at INTEGER NOT NULL
-      )`,
-      `CREATE INDEX IF NOT EXISTS idx_login_attempts ON login_attempts(key, at)`,
-    ],
-    "write",
-  );
+async function migrate(s: Store) {
+  const pk = s.kind === "postgres" ? "SERIAL PRIMARY KEY" : "INTEGER PRIMARY KEY AUTOINCREMENT";
+  const big = s.kind === "postgres" ? "BIGINT" : "INTEGER";
+  const stmts = [
+    `CREATE TABLE IF NOT EXISTS content (
+      id TEXT PRIMARY KEY,
+      data TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )`,
+    `CREATE TABLE IF NOT EXISTS orders (
+      id ${pk},
+      ref TEXT NOT NULL UNIQUE,
+      idempotency_key TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL,
+      customer_name TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      address TEXT NOT NULL,
+      area TEXT NOT NULL DEFAULT '',
+      note TEXT NOT NULL DEFAULT '',
+      color TEXT NOT NULL DEFAULT '',
+      quantity INTEGER NOT NULL,
+      unit_price_cents ${big} NOT NULL,
+      delivery_fee_cents ${big} NOT NULL,
+      total_cents ${big} NOT NULL,
+      currency TEXT NOT NULL,
+      product_name TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'new',
+      status_updated_at TEXT NOT NULL,
+      admin_note TEXT NOT NULL DEFAULT ''
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, created_at)`,
+    `CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at)`,
+    `CREATE TABLE IF NOT EXISTS login_attempts (
+      id ${pk},
+      attempt_key TEXT NOT NULL,
+      attempted_at ${big} NOT NULL
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_login_attempts ON login_attempts(attempt_key, attempted_at)`,
+  ];
+  for (const q of stmts) await s.query(q);
 }
 
-export async function db(): Promise<Client> {
-  const c = getClient();
+async function db(): Promise<Store> {
+  if (!store) store = await makeStore();
+  const s = store;
   if (!ready) {
-    ready = migrate(c).catch((err) => {
+    ready = migrate(s).catch((err) => {
       ready = null;
+      store = null;
       throw err;
     });
   }
   await ready;
-  return c;
+  return s;
+}
+
+/** For the admin: is the database reachable, and which one is it? */
+export async function databaseStatus(): Promise<{ ok: boolean; kind?: string; source?: string; error?: string }> {
+  const cfg = resolveDbConfig();
+  if (cfg.kind === "none") return { ok: false, error: cfg.reason };
+  try {
+    await db();
+    return { ok: true, kind: cfg.kind === "postgres" ? "Postgres" : cfg.url.startsWith("file:") ? "Local SQLite file" : "Turso / libSQL", source: cfg.source };
+  } catch (err) {
+    return { ok: false, kind: cfg.kind, source: cfg.source, error: String((err as Error)?.message ?? err).slice(0, 300) };
+  }
+}
+
+function isUniqueViolation(err: unknown): boolean {
+  const e = err as { code?: string; message?: string };
+  return e?.code === "23505" || /UNIQUE|duplicate key/i.test(String(e?.message ?? ""));
 }
 
 /* ---------------------------- content ---------------------------------- */
 
 async function readContent(id: string): Promise<unknown> {
-  const c = await db();
-  const rs = await c.execute({ sql: "SELECT data FROM content WHERE id = ?", args: [id] });
-  if (!rs.rows.length) return null;
+  const rows = await (await db()).query("SELECT data FROM content WHERE id = ?", [id]);
+  if (!rows.length) return null;
   try {
-    return JSON.parse(String(rs.rows[0].data));
+    return JSON.parse(String(rows[0].data));
   } catch {
     return null;
   }
 }
 
 async function writeContent(id: string, data: unknown) {
-  const c = await db();
-  await c.execute({
-    sql: `INSERT INTO content (id, data, updated_at) VALUES (?, ?, ?)
-          ON CONFLICT(id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`,
-    args: [id, JSON.stringify(data), new Date().toISOString()],
-  });
+  await (await db()).query(
+    `INSERT INTO content (id, data, updated_at) VALUES (?, ?, ?)
+     ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`,
+    [id, JSON.stringify(data), new Date().toISOString()],
+  );
 }
 
 export async function getSettings(): Promise<StoreSettings> {
@@ -179,21 +272,18 @@ export type NewOrder = Omit<Order, "id" | "ref" | "createdAt" | "status" | "stat
  */
 export async function createOrder(o: NewOrder): Promise<{ order: Order; duplicate: boolean }> {
   const c = await db();
-  const existing = await c.execute({
-    sql: "SELECT * FROM orders WHERE idempotency_key = ?",
-    args: [o.idempotencyKey],
-  });
-  if (existing.rows.length) return { order: rowToOrder(existing.rows[0]), duplicate: true };
+  const existing = await c.query("SELECT * FROM orders WHERE idempotency_key = ?", [o.idempotencyKey]);
+  if (existing.length) return { order: rowToOrder(existing[0]), duplicate: true };
 
   const now = new Date().toISOString();
   for (let attempt = 0; attempt < 5; attempt++) {
     const ref = makeRef();
     try {
-      const rs = await c.execute({
-        sql: `INSERT INTO orders (ref, idempotency_key, created_at, customer_name, phone, address, area, note, color,
+      const rows = await c.query(
+        `INSERT INTO orders (ref, idempotency_key, created_at, customer_name, phone, address, area, note, color,
                 quantity, unit_price_cents, delivery_fee_cents, total_cents, currency, product_name, status, status_updated_at)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', ?) RETURNING *`,
-        args: [
+        [
           ref,
           o.idempotencyKey,
           now,
@@ -211,18 +301,12 @@ export async function createOrder(o: NewOrder): Promise<{ order: Order; duplicat
           o.productName,
           now,
         ],
-      });
-      return { order: rowToOrder(rs.rows[0]), duplicate: false };
+      );
+      return { order: rowToOrder(rows[0]), duplicate: false };
     } catch (err) {
-      const msg = String((err as Error)?.message ?? err);
-      if (msg.includes("idempotency_key")) {
-        const again = await c.execute({
-          sql: "SELECT * FROM orders WHERE idempotency_key = ?",
-          args: [o.idempotencyKey],
-        });
-        if (again.rows.length) return { order: rowToOrder(again.rows[0]), duplicate: true };
-      }
-      if (!msg.includes("UNIQUE")) throw err;
+      if (!isUniqueViolation(err)) throw err;
+      const again = await c.query("SELECT * FROM orders WHERE idempotency_key = ?", [o.idempotencyKey]);
+      if (again.length) return { order: rowToOrder(again[0]), duplicate: true };
       // ref collision: try another
     }
   }
@@ -230,7 +314,6 @@ export async function createOrder(o: NewOrder): Promise<{ order: Order; duplicat
 }
 
 export async function listOrders(opts: { status?: OrderStatus | "all"; q?: string; limit?: number }) {
-  const c = await db();
   const where: string[] = [];
   const args: (string | number)[] = [];
   if (opts.status && opts.status !== "all") {
@@ -246,30 +329,29 @@ export async function listOrders(opts: { status?: OrderStatus | "all"; q?: strin
   const sql = `SELECT * FROM orders ${where.length ? "WHERE " + where.join(" AND ") : ""}
                ORDER BY created_at DESC LIMIT ?`;
   args.push(Math.min(Math.max(opts.limit ?? 200, 1), 500));
-  const rs = await c.execute({ sql, args });
-  return rs.rows.map((r) => rowToOrder(r as Record<string, unknown>));
+  const rows = await (await db()).query(sql, args);
+  return rows.map(rowToOrder);
 }
 
 export async function countOrdersByStatus(): Promise<Record<string, number>> {
-  const c = await db();
-  const rs = await c.execute("SELECT status, COUNT(*) AS n FROM orders GROUP BY status");
+  const rows = await (await db()).query("SELECT status, COUNT(*) AS n FROM orders GROUP BY status");
   const out: Record<string, number> = {};
-  for (const r of rs.rows) out[String(r.status)] = Number(r.n);
+  for (const r of rows) out[String(r.status)] = Number(r.n);
   return out;
 }
 
 export async function getOrder(id: number): Promise<Order | null> {
-  const c = await db();
-  const rs = await c.execute({ sql: "SELECT * FROM orders WHERE id = ?", args: [id] });
-  return rs.rows.length ? rowToOrder(rs.rows[0] as Record<string, unknown>) : null;
+  const rows = await (await db()).query("SELECT * FROM orders WHERE id = ?", [id]);
+  return rows.length ? rowToOrder(rows[0]) : null;
 }
 
 export async function updateOrderStatus(id: number, status: OrderStatus, adminNote: string) {
-  const c = await db();
-  await c.execute({
-    sql: "UPDATE orders SET status = ?, admin_note = ?, status_updated_at = ? WHERE id = ?",
-    args: [status, adminNote, new Date().toISOString(), id],
-  });
+  await (await db()).query("UPDATE orders SET status = ?, admin_note = ?, status_updated_at = ? WHERE id = ?", [
+    status,
+    adminNote,
+    new Date().toISOString(),
+    id,
+  ]);
 }
 
 /* --------------------------- login throttle ---------------------------- */
@@ -280,20 +362,15 @@ const MAX_FAILURES = 8;
 export async function tooManyLoginFailures(key: string): Promise<boolean> {
   const c = await db();
   const since = Date.now() - WINDOW_MS;
-  await c.execute({ sql: "DELETE FROM login_attempts WHERE at < ?", args: [since] });
-  const rs = await c.execute({
-    sql: "SELECT COUNT(*) AS n FROM login_attempts WHERE key = ? AND at >= ?",
-    args: [key, since],
-  });
-  return Number(rs.rows[0]?.n ?? 0) >= MAX_FAILURES;
+  await c.query("DELETE FROM login_attempts WHERE attempted_at < ?", [since]);
+  const rows = await c.query("SELECT COUNT(*) AS n FROM login_attempts WHERE attempt_key = ? AND attempted_at >= ?", [key, since]);
+  return Number(rows[0]?.n ?? 0) >= MAX_FAILURES;
 }
 
 export async function recordLoginFailure(key: string) {
-  const c = await db();
-  await c.execute({ sql: "INSERT INTO login_attempts (key, at) VALUES (?, ?)", args: [key, Date.now()] });
+  await (await db()).query("INSERT INTO login_attempts (attempt_key, attempted_at) VALUES (?, ?)", [key, Date.now()]);
 }
 
 export async function clearLoginFailures(key: string) {
-  const c = await db();
-  await c.execute({ sql: "DELETE FROM login_attempts WHERE key = ?", args: [key] });
+  await (await db()).query("DELETE FROM login_attempts WHERE attempt_key = ?", [key]);
 }

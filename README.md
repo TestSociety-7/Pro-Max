@@ -5,7 +5,7 @@ A mobile-first, Arabic (right-to-left) one-page store for the **Pro Max Salad Ma
 - **Storefront** (`/`): opening scene with both colors, price and buy button; what it cuts; product story and six features from the box; black/beige color showcase and functions; the Arabic poster; delivery + COD steps; returns/support; FAQs; order form with live total and a clear confirmation with order reference.
 - **Admin** (`/admin`): sign-in, order list with search and status filter, order detail with status updates (New → Confirmed → Shipped → Delivered / Cancelled) and an internal note, **Product** editor (price, old price, availability, colors, all customer-facing copy, FAQs) and **Store settings** (site name, phone, WhatsApp, email, hours, address, currency, delivery fee, free-delivery threshold, service area, delivery estimate, returns policy, consent text, announcement bar, accent color). Saving updates the live store immediately.
 
-Stack: Next.js 15 (App Router, server actions) · React 19 · libSQL (SQLite locally, Turso in production) · plain CSS. No client-side secrets; no card payments.
+Stack: Next.js 15 (App Router, server actions) · React 19 · libSQL (SQLite locally, Turso in production) or Postgres (Neon/Supabase) · plain CSS. No client-side secrets; no card payments.
 
 ## Run locally
 
@@ -28,17 +28,16 @@ The local database is created automatically at `data/promax.db`.
 | --- | --- | --- |
 | `ADMIN_PASSWORD_HASH` | yes | Output of `npm run hash-password`. The plain password is never stored. Changing it signs out every session. |
 | `SESSION_SECRET` | yes | Random string, 32+ characters. Signs the admin session cookie. |
-| `DATABASE_URL` or `TURSO_DATABASE_URL` | production | `libsql://…` URL of a hosted libSQL database. Defaults to `file:./data/promax.db` locally. |
-| `DATABASE_AUTH_TOKEN` or `TURSO_AUTH_TOKEN` | production | Token for that database. |
+| Database | production | Set automatically when you connect **Turso** (`TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`) or **Neon / Postgres** (`DATABASE_URL` / `POSTGRES_URL`) in Vercel → Storage, including prefixed names. You can also set `DATABASE_URL` yourself (`libsql://…` with `DATABASE_AUTH_TOKEN`, or `postgres://…`). Locally it defaults to `file:./data/promax.db`. |
 
 ## Deploy on Vercel
 
 1. Import this repository into the Vercel project.
-2. **Storage → Create database → Turso** (Marketplace). It adds `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` to the project. (Any libSQL URL works via `DATABASE_URL`/`DATABASE_AUTH_TOKEN`.)
+2. **Storage → Create Database → Turso or Neon**, and connect it to the project. Its variables are picked up automatically.
 3. Add `ADMIN_PASSWORD_HASH` and `SESSION_SECRET` under **Settings → Environment Variables**.
 4. Deploy. Tables are created on first request.
 
-Vercel's filesystem is read-only, so the local SQLite file cannot be used in production.
+Vercel's filesystem is read-only, so the local SQLite file cannot be used in production. If no database is connected, the store says the order form can't load and `/admin/login` explains what's missing.
 
 ## How orders are stored and the admin is secured
 
