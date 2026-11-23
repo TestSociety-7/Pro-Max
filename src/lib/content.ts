@@ -59,7 +59,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   supportEmail: "",
   supportHours: "",
   businessAddress: "",
-  currencyCode: "",
+  currencyCode: "ILS",
   deliveryFee: 0,
   freeDeliveryFrom: 0,
   serviceArea: "",
