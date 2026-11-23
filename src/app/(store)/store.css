@@ -1889,3 +1889,17 @@ h2 {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
+
+.btn-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #25d366;
+  color: #04210f;
+  font-weight: 800;
+  box-shadow: 0 14px 34px -12px rgba(37, 211, 102, 0.8);
+}
+.btn-whatsapp:hover {
+  background: #2fe372;
+}

@@ -18,6 +18,8 @@ export type OrderState =
       color: string;
       name: string;
       phone: string;
+      /** wa.me link with the order pre-written, to the store's WhatsApp number (empty if none is set). */
+      whatsappUrl: string;
     };
 
 // Light per-process throttle against scripted spam. Serverless instances do not
@@ -30,6 +32,12 @@ function throttled(key: string): boolean {
   recent.set(key, list);
   if (recent.size > 5000) recent.clear();
   return list.length > 8;
+}
+
+function whatsappOrderLink(number: string, lines: string[]): string {
+  const digits = number.replace(/[^\d]/g, "");
+  if (digits.length < 8) return "";
+  return `https://wa.me/${digits}?text=${encodeURIComponent(lines.filter(Boolean).join("\n"))}`;
 }
 
 function str(fd: FormData, k: string): string {
@@ -131,6 +139,16 @@ export async function placeOrder(_prev: OrderState, fd: FormData): Promise<Order
       color: order.color,
       name: order.customerName,
       phone: order.phone,
+      whatsappUrl: whatsappOrderLink(settings.whatsappNumber, [
+        `طلب جديد ${order.ref}`,
+        `الاسم: ${order.customerName}`,
+        `الهاتف: ${order.phone}`,
+        `المنتج: ${order.productName} × ${order.quantity} (${order.color})`,
+        `التوصيل: ${order.area}`,
+        `العنوان: ${order.address}`,
+        order.note ? `ملاحظة: ${order.note}` : "",
+        `الإجمالي عند الاستلام: ${formatMoney(order.totalCents, order.currency)}`,
+      ]),
     };
   } catch (err) {
     console.error("placeOrder: insert failed", err);
