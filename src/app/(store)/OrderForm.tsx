@@ -4,7 +4,7 @@ import { startTransition, useActionState, useEffect, useMemo, useRef, useState }
 import { placeOrder, type OrderState } from "./actions";
 import { useSelectedColor } from "./client";
 import { validateOrder, type FieldErrors, type OrderInput } from "@/lib/validation";
-import { CheckIcon } from "./icons";
+import { CheckIcon, WhatsAppIcon } from "./icons";
 import { Celebration } from "./showcase";
 
 type Props = {
@@ -52,6 +52,14 @@ export function OrderForm(p: Props) {
 
   const serverErrors = state.status === "error" ? state.fieldErrors ?? {} : {};
   const errors: FieldErrors = touched ? clientErrors : serverErrors;
+
+  useEffect(() => {
+    if (state.status === "success" && state.whatsappUrl) {
+      // Hand the order to WhatsApp so the store gets it as a message too.
+      const t = setTimeout(() => window.location.assign(state.whatsappUrl), 1600);
+      return () => clearTimeout(t);
+    }
+  }, [state]);
 
   useEffect(() => {
     if (state.status === "success") successRef.current?.focus();
@@ -148,6 +156,11 @@ export function OrderForm(p: Props) {
           سنتصل بك على الرقم <bdi dir="ltr">{state.phone}</bdi> لتأكيد الطلب والعنوان
           {p.deliveryEstimate ? `، والتوصيل المتوقع: ${p.deliveryEstimate}.` : "."} ستدفع نقداً عند الاستلام.
         </p>
+        {state.whatsappUrl && (
+          <a className="btn btn-whatsapp btn-block" href={state.whatsappUrl}>
+            <WhatsAppIcon /> أرسل الطلب عبر واتساب
+          </a>
+        )}
         <p className="muted">احتفظ برقم الطلب في حال احتجت للتواصل معنا.</p>
         <button
           type="button"

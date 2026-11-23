@@ -42,7 +42,7 @@ export default async function SettingsPage() {
             <Field name="supportPhone" label="هاتف الدعم" hint="يظهر أعلى الصفحة وفي قسم الدعم مع زر اتصال.">
               <input {...f("supportPhone")} type="tel" defaultValue={s.supportPhone} dir="ltr" />
             </Field>
-            <Field name="whatsappNumber" label="رقم واتساب" hint="الرقم الدولي كاملاً، مثال: 972500000000+">
+            <Field name="whatsappNumber" label="رقم واتساب (تصله الطلبات)" hint="بعد كل طلب يُفتح واتساب العميل برسالة فيها كل تفاصيل الطلب إلى هذا الرقم. اكتبه دولياً، مثال: 972599123456+">
               <input {...f("whatsappNumber")} type="tel" defaultValue={s.whatsappNumber} dir="ltr" />
             </Field>
             <Field name="supportHours" label="ساعات الدعم">
