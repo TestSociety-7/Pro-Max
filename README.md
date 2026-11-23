@@ -49,6 +49,14 @@ Vercel's filesystem is read-only, so the local SQLite file cannot be used in pro
 
 See `public/product/README.md`. Photos are pre-sized WebP files referenced from `src/app/(store)/ProductPicture.tsx`.
 
+## 3D hero stage
+
+The hero is a real-time three.js scene (`src/app/(store)/stage/`): the owner's two product photos, cut out from their backgrounds (`public/product/cut-*.webp`), stand on a lit turntable with modelled blade discs orbiting around them. Visitors can drag to spin it, and the colour buttons rotate the chosen unit to the front.
+
+- It loads after the page, on top of a static poster, so the first paint stays fast.
+- Visitors with reduced motion, data saver, or no WebGL keep the static poster.
+- The products are photos on cards, not a 3D scan. True 4K close-ups need higher-resolution source media (the current photos are about 1400px tall). A manufacturer 3D model (.glb) or 4K video could replace the cards later.
+
 ## Project layout
 
 ```
