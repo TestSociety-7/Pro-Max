@@ -1,0 +1,377 @@
+import { randomUUID } from "node:crypto";
+import { getProduct, getSettings } from "@/lib/db";
+import { DEFAULT_PRODUCT, DEFAULT_SETTINGS, formatMoney, orderingOpen, toCents } from "@/lib/content";
+import { ProductPicture } from "./ProductPicture";
+import { OrderForm } from "./OrderForm";
+import { ColorShowcase, RevealController, StickyOrder } from "./client";
+import { BenefitIcons, CallIcon, CashIcon, CheckIcon, PhoneIcon, TruckIcon } from "./icons";
+
+export default async function Home() {
+  let product = DEFAULT_PRODUCT;
+  let settings = DEFAULT_SETTINGS;
+  let dbError = false;
+  try {
+    [product, settings] = await Promise.all([getProduct(), getSettings()]);
+  } catch (err) {
+    console.error("storefront: could not load content", err);
+    dbError = true;
+  }
+
+  const open = !dbError && orderingOpen(product, settings);
+  const priceSet = product.price > 0 && settings.currencyCode;
+  const price = priceSet ? formatMoney(toCents(product.price), settings.currencyCode) : "";
+  const compare =
+    priceSet && product.compareAtPrice > product.price
+      ? formatMoney(toCents(product.compareAtPrice), settings.currencyCode)
+      : "";
+  const fee = toCents(settings.deliveryFee);
+  const feeText = !settings.currencyCode
+    ? ""
+    : fee === 0
+      ? "التوصيل مجاني"
+      : `رسوم التوصيل ${formatMoney(fee, settings.currencyCode)}` +
+        (settings.freeDeliveryFrom > 0
+          ? ` — مجاني للطلبات من ${formatMoney(toCents(settings.freeDeliveryFrom), settings.currencyCode)}`
+          : "");
+  const phone = settings.supportPhone.trim();
+  const whatsapp = settings.whatsappNumber.replace(/[^\d]/g, "");
+  const accent = /^#[0-9a-fA-F]{6}$/.test(settings.accentColor) ? settings.accentColor : DEFAULT_SETTINGS.accentColor;
+  const colorPhotoAlt: Record<string, string> = {
+    black: `${product.name} باللون الأسود مع الأقراص والملحقات`,
+    beige: `${product.name} باللون البيج مع الأقراص والملحقات`,
+  };
+
+  return (
+    <div style={{ ["--accent" as string]: accent }}>
+      <a className="skip" href="#order">
+        انتقل إلى نموذج الطلب
+      </a>
+      <RevealController />
+
+      {settings.announcement && <div className="announce">{settings.announcement}</div>}
+
+      <header className="topbar">
+        <a href="#top" className="wordmark" aria-label={settings.storeName}>
+          <span className="wordmark-mark" aria-hidden>
+            P
+          </span>
+          <span dir="ltr">{settings.storeName}</span>
+        </a>
+        <nav className="topbar-actions" aria-label="روابط سريعة">
+          {phone && (
+            <a className="topbar-phone" href={`tel:${phone}`}>
+              <PhoneIcon />
+              <span dir="ltr">{phone}</span>
+            </a>
+          )}
+          <a className="btn btn-small btn-primary" href="#order">
+            اطلب الآن
+          </a>
+        </nav>
+      </header>
+
+      <main id="top">
+        {/* 1. Opening scene */}
+        <section className="hero" aria-labelledby="hero-title">
+          <div className="hero-glow" aria-hidden />
+          <div className="hero-copy">
+            <p className="eyebrow">
+              {settings.storeName} <span aria-hidden>·</span> <span dir="ltr">{product.modelNumber}</span>
+            </p>
+            <h1 id="hero-title">
+              {product.headline.includes("7 في 1") ? (
+                <>
+                  {product.headline.replace("7 في 1", "").trim()}{" "}
+                  <span className="seven">
+                    7<small>في</small>1
+                  </span>
+                </>
+              ) : (
+                product.headline
+              )}
+            </h1>
+            {product.subheadline && <p className="lede">{product.subheadline}</p>}
+            {product.keyBenefit && <p className="key-benefit">{product.keyBenefit}</p>}
+
+            <div className="price-row">
+              {price ? (
+                <>
+                  <span className="price">{price}</span>
+                  {compare && (
+                    <s className="compare" aria-label={`السعر السابق ${compare}`}>
+                      {compare}
+                    </s>
+                  )}
+                </>
+              ) : (
+                <span className="price price-pending">السعر يُعلن قريباً</span>
+              )}
+              <span className="cod-pill">
+                <CashIcon /> الدفع عند الاستلام
+              </span>
+            </div>
+
+            <div className="hero-actions" id="hero-cta">
+              <a className="btn btn-primary btn-large" href="#order">
+                {open ? "اطلب الآن" : "تواصل معنا للطلب"}
+              </a>
+              <div className="hero-colors" aria-label="الألوان المتوفرة">
+                {product.colors.map((c) => (
+                  <span key={c.key} className={`chip swatch-${c.key}`}>
+                    <span className="dot" aria-hidden />
+                    {c.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+            {product.availability === "sold_out" && <p className="stock-note">نفدت الكمية حالياً.</p>}
+          </div>
+
+          <figure className="hero-visual">
+            <ProductPicture
+              slug="duo"
+              priority
+              sizes="(min-width: 960px) 55vw, 100vw"
+              alt={`${product.name} باللونين الأسود والبيج`}
+            />
+          </figure>
+        </section>
+
+        {/* uses strip */}
+        {product.uses.length > 0 && (
+          <section className="uses" aria-label="ماذا تقطّع">
+            <ul>
+              {product.uses.map((u) => (
+                <li key={u}>{u}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {/* 2. Product story */}
+        <section className="story" aria-labelledby="story-title">
+          <div className="story-head" data-reveal>
+            <p className="eyebrow">لماذا Pro Max</p>
+            <h2 id="story-title">مطبخك، أسرع وأنظف.</h2>
+            {product.story && <p className="story-text">{product.story}</p>}
+          </div>
+          {product.benefits.length > 0 && (
+            <ul className="benefits">
+              {product.benefits.map((b, i) => (
+                <li key={b} data-reveal style={{ ["--d" as string]: `${i * 60}ms` }}>
+                  <span className="benefit-icon">{BenefitIcons[i % BenefitIcons.length]}</span>
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* 3. Cinematic presentation */}
+        <section className="gallery" aria-labelledby="gallery-title">
+          <div className="gallery-copy" data-reveal>
+            <p className="eyebrow">لونان مميزان</p>
+            <h2 id="gallery-title">اختر لون مطبخك.</h2>
+            {product.functions.length > 0 && (
+              <>
+                <h3 className="sub">الوظائف</h3>
+                <ul className="functions">
+                  {product.functions.map((f) => (
+                    <li key={f}>
+                      <CheckIcon />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {product.included.length > 0 && (
+              <>
+                <h3 className="sub">داخل العلبة</h3>
+                <ul className="functions">
+                  {product.included.map((f) => (
+                    <li key={f}>
+                      <CheckIcon />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+          <div data-reveal>
+            <ColorShowcase
+              colors={product.colors}
+              photos={{
+                black: <ProductPicture slug="black" sizes="(min-width: 960px) 45vw, 100vw" alt={colorPhotoAlt.black} />,
+                beige: <ProductPicture slug="beige" sizes="(min-width: 960px) 45vw, 100vw" alt={colorPhotoAlt.beige} />,
+              }}
+            />
+          </div>
+        </section>
+
+        <section className="poster" aria-label="نظرة شاملة" data-reveal>
+          <ProductPicture
+            slug="poster-ar"
+            sizes="(min-width: 760px) 640px, 100vw"
+            alt="قطاعة السلطات 7×1 بلونين: أسود وبيج. لتقطيع البصل والخيار والجزر والملفوف والسلطة العربية، مناسبة لجميع أنواع السلطات ومثالية للاستخدام المنزلي."
+          />
+        </section>
+
+        {/* 4. Delivery & COD */}
+        <section className="delivery" aria-labelledby="delivery-title">
+          <div data-reveal>
+            <p className="eyebrow">التوصيل والدفع</p>
+            <h2 id="delivery-title">اطلب الآن، وادفع عند الاستلام.</h2>
+          </div>
+          <ol className="steps">
+            <li data-reveal>
+              <span className="step-icon">
+                <CheckIcon />
+              </span>
+              <h3>اطلب في دقيقة</h3>
+              <p>اكتب اسمك ورقمك وعنوانك فقط. بدون حساب وبدون بطاقة.</p>
+            </li>
+            <li data-reveal style={{ ["--d" as string]: "80ms" }}>
+              <span className="step-icon">
+                <CallIcon />
+              </span>
+              <h3>نتصل لتأكيد الطلب</h3>
+              <p>نراجع معك اللون والكمية والعنوان قبل الشحن.</p>
+            </li>
+            <li data-reveal style={{ ["--d" as string]: "160ms" }}>
+              <span className="step-icon">
+                <TruckIcon />
+              </span>
+              <h3>التوصيل</h3>
+              <p>
+                {settings.deliveryEstimate ? `خلال ${settings.deliveryEstimate}.` : "نخبرك بموعد التوصيل عند التأكيد."}
+                {settings.serviceArea && <> نوصّل إلى: {settings.serviceArea}.</>}
+              </p>
+            </li>
+            <li data-reveal style={{ ["--d" as string]: "240ms" }}>
+              <span className="step-icon">
+                <CashIcon />
+              </span>
+              <h3>ادفع نقداً عند الاستلام</h3>
+              <p>{feeText ? (feeText.endsWith(".") ? feeText : `${feeText}.`) : "تُحدَّد رسوم التوصيل عند تأكيد الطلب."}</p>
+            </li>
+          </ol>
+        </section>
+
+        {/* 5. Trust & FAQ */}
+        <section className="trust" aria-labelledby="faq-title">
+          <div className="trust-cards">
+            <div data-reveal>
+              <h3>الاستبدال والإرجاع</h3>
+              <p>{settings.returnsPolicy || "للاستفسار عن الاستبدال أو الإرجاع، تواصل معنا وسنساعدك."}</p>
+            </div>
+            <div data-reveal>
+              <h3>الدعم</h3>
+              {phone || whatsapp || settings.supportEmail ? (
+                <ul className="contact-list">
+                  {phone && (
+                    <li>
+                      هاتف: <a href={`tel:${phone}`} dir="ltr">{phone}</a>
+                    </li>
+                  )}
+                  {whatsapp && (
+                    <li>
+                      واتساب:{" "}
+                      <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer" dir="ltr">
+                        +{whatsapp}
+                      </a>
+                    </li>
+                  )}
+                  {settings.supportEmail && (
+                    <li>
+                      بريد: <a href={`mailto:${settings.supportEmail}`}>{settings.supportEmail}</a>
+                    </li>
+                  )}
+                  {settings.supportHours && <li>{settings.supportHours}</li>}
+                </ul>
+              ) : (
+                <p>سنتواصل معك هاتفياً بعد استلام طلبك.</p>
+              )}
+            </div>
+          </div>
+
+          {product.faqs.length > 0 && (
+            <div className="faq" data-reveal>
+              <h2 id="faq-title">أسئلة شائعة</h2>
+              {product.faqs.map((f) => (
+                <details key={f.q}>
+                  <summary>{f.q}</summary>
+                  <p>{f.a}</p>
+                </details>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* 6. Order */}
+        <section className="order" id="order" aria-labelledby="order-title">
+          <div className="order-intro">
+            <p className="eyebrow">اطلب الآن</p>
+            <h2 id="order-title">أكمل طلبك</h2>
+            <div className="order-product">
+              <ProductPicture slug="duo" sizes="120px" alt="" className="order-thumb" />
+              <div>
+                <strong>{product.name}</strong>
+                <span>{price || "السعر يُعلن قريباً"}</span>
+              </div>
+            </div>
+            <ul className="order-points">
+              <li>
+                <CheckIcon /> الدفع نقداً عند الاستلام
+              </li>
+              <li>
+                <CheckIcon /> نتصل بك لتأكيد الطلب قبل الشحن
+              </li>
+              {settings.deliveryEstimate && (
+                <li>
+                  <CheckIcon /> التوصيل خلال {settings.deliveryEstimate}
+                </li>
+              )}
+            </ul>
+          </div>
+          <div className="order-card">
+            {dbError ? (
+              <div className="order-closed" role="alert">
+                <h3>تعذّر تحميل نموذج الطلب</h3>
+                <p>حدّث الصفحة بعد قليل{phone ? <> أو اتصل بنا على <a href={`tel:${phone}`} dir="ltr">{phone}</a></> : ""}.</p>
+              </div>
+            ) : (
+              <OrderForm
+                idempotencyKey={randomUUID()}
+                open={open}
+                unitCents={toCents(product.price)}
+                currency={settings.currencyCode}
+                deliveryFeeCents={fee}
+                freeDeliveryFromCents={toCents(settings.freeDeliveryFrom)}
+                maxPerOrder={product.maxPerOrder}
+                colors={product.colors}
+                privacyNote={settings.privacyNote}
+                supportPhone={phone}
+                deliveryEstimate={settings.deliveryEstimate}
+              />
+            )}
+          </div>
+        </section>
+      </main>
+
+      <footer className="footer">
+        <div>
+          <strong dir="ltr">{settings.storeName}</strong>
+          {settings.tagline && <span> — {settings.tagline}</span>}
+        </div>
+        {settings.businessAddress && <p>{settings.businessAddress}</p>}
+        <p className="muted">
+          © {new Date().getFullYear()} {settings.storeName}
+        </p>
+      </footer>
+
+      <StickyOrder price={price || "اطلب الآن"} open={open} />
+    </div>
+  );
+}
