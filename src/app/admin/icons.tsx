@@ -10,3 +10,4 @@ export const IcPhone = () => (<svg {...P}><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19
 export const IcSearch = () => (<svg {...P}><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>);
 export const IcLock = () => (<svg {...P}><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>);
 export const IcArrow = () => (<svg {...P}><path d="M19 12H5M12 19l-7-7 7-7" /></svg>);
+export const IcTrash = () => (<svg {...P}><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>);

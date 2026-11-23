@@ -5,7 +5,8 @@ import { getOrder } from "@/lib/db";
 import { ORDER_STATUSES, STATUS_LABEL, formatMoney } from "@/lib/content";
 import { f } from "@/app/admin/fieldProps";
 import { AdminForm, Field } from "../../../AdminForm";
-import { setOrderStatus } from "../../../actions";
+import { removeOrderAndBack, setOrderStatus } from "../../../actions";
+import { ConfirmDelete } from "../../../ConfirmDelete";
 import { IcArrow, IcPhone } from "../../../icons";
 import { fmtDate } from "../../../fmt";
 
@@ -116,6 +117,15 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             </Field>
           </AdminForm>
           <p className="a-hint">آخر تحديث: {fmtDate(o.statusUpdatedAt, true)}</p>
+        </section>
+
+        <section className="card danger-card">
+          <h2>حذف الطلب</h2>
+          <p className="a-hint">يُحذف الطلب نهائياً من لوحة التحكم.</p>
+          <form action={removeOrderAndBack}>
+            <input type="hidden" name="id" value={o.id} />
+            <ConfirmDelete />
+          </form>
         </section>
       </div>
     </>

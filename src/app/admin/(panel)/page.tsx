@@ -3,13 +3,15 @@ import { requireAdmin } from "@/lib/auth";
 import { getProduct, getSettings, listOrders } from "@/lib/db";
 import { ORDER_STATUSES, STATUS_LABEL, formatMoney, isStatus, isValidCurrency } from "@/lib/content";
 import { CountUp, Tilt } from "../LiveTools";
-import { IcPhone, IcSearch } from "../icons";
+import { IcSearch } from "../icons";
+import { SwipeOrders } from "../SwipeOrders";
+import { Welcome } from "../Welcome";
 import { dayKey, fmtDate } from "../fmt";
 
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; welcome?: string }>;
 }) {
   await requireAdmin();
   const sp = await searchParams;
@@ -56,6 +58,7 @@ export default async function OrdersPage({
 
   return (
     <>
+      {sp.welcome === "1" && <Welcome storeName={settings.storeName} newCount={counts.new ?? 0} todayCount={todayCount} />}
       <div className="page-head">
         <div>
           <p className="eyebrow">نظرة عامة</p>
@@ -103,7 +106,7 @@ export default async function OrdersPage({
       <div className="toolbar">
         <nav className="chips" aria-label="تصفية حسب الحالة">
           <Link href={tab("all")} aria-current={status === "all" ? "page" : undefined}>
-            الكل <span>{all.length}</span>
+            الكل <span>{all.length - (counts.cancelled ?? 0)}</span>
           </Link>
           {ORDER_STATUSES.map((s) => (
             <Link key={s} href={tab(s)} aria-current={status === s ? "page" : undefined} className={`chip-${s}`}>
@@ -143,31 +146,20 @@ export default async function OrdersPage({
           )}
         </div>
       ) : (
-        <ul className="order-list">
-          {orders.map((o, i) => (
-            <li key={o.id} style={{ "--i": Math.min(i, 12) } as React.CSSProperties}>
-              <Link href={`/admin/orders/${o.id}`} className="order-row">
-                <span className="o-main">
-                  <span className="o-name" dir="auto">
-                    {o.customerName}
-                  </span>
-                  <span className="o-meta">
-                    <span className="o-ref">{o.ref}</span> · {fmtDate(o.createdAt)}
-                    {o.area ? <> · <span dir="auto">{o.area}</span></> : null}
-                  </span>
-                </span>
-                <span className="o-item" dir="auto">
-                  {o.quantity} × {o.color}
-                </span>
-                <span className="o-total">{formatMoney(o.totalCents, o.currency)}</span>
-                <span className={`badge badge-${o.status}`}>{STATUS_LABEL[o.status]}</span>
-              </Link>
-              <a href={`tel:${o.phone}`} className="o-call" aria-label={`اتصل بـ ${o.customerName}`}>
-                <IcPhone />
-              </a>
-            </li>
-          ))}
-        </ul>
+        <SwipeOrders
+          rows={orders.map((o) => ({
+            id: o.id,
+            ref: o.ref,
+            name: o.customerName,
+            meta: fmtDate(o.createdAt),
+            area: o.area,
+            item: `${o.quantity} × ${o.color}`,
+            total: formatMoney(o.totalCents, o.currency),
+            status: o.status,
+            statusLabel: STATUS_LABEL[o.status],
+            phone: o.phone,
+          }))}
+        />
       )}
     </>
   );

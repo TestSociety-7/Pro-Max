@@ -12,6 +12,7 @@ import {
 } from "@/lib/auth";
 import {
   deletePushSub,
+  deleteOrders,
   latestOrderId,
   ordersAfter,
   savePushSub,
@@ -80,7 +81,7 @@ export async function login(_prev: FormState, fd: FormData): Promise<FormState> 
   }
   await clearLoginFailures(key);
   await startSession();
-  redirect("/admin");
+  redirect("/admin?welcome=1");
 }
 
 export async function logout() {
@@ -99,6 +100,22 @@ export async function setOrderStatus(_prev: FormState, fd: FormData): Promise<Fo
   revalidatePath("/admin");
   revalidatePath(`/admin/orders/${id}`);
   return { ok: true, message: "تم تحديث الطلب." };
+}
+
+export async function removeOrders(ids: number[]): Promise<{ ok: boolean }> {
+  await requireAdmin();
+  if (!Array.isArray(ids)) return { ok: false };
+  await deleteOrders(ids.map(Number));
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+export async function removeOrderAndBack(fd: FormData) {
+  await requireAdmin();
+  const id = Number(fd.get("id"));
+  if (Number.isInteger(id) && id > 0) await deleteOrders([id]);
+  revalidatePath("/admin");
+  redirect("/admin");
 }
 
 /* ------------------------------- product ------------------------------- */

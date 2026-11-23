@@ -1,5 +1,5 @@
 import "server-only";
-import webpush from "web-push";
+import * as webpush from "web-push";
 import { deletePushSub, getVapidKeys, listPushSubs } from "./db";
 
 let configured: string | null = null;
