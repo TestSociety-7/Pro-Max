@@ -4,6 +4,7 @@ import { DEFAULT_PRODUCT, DEFAULT_SETTINGS, formatMoney, orderingOpen, toCents }
 import { ProductPicture } from "./ProductPicture";
 import { OrderForm } from "./OrderForm";
 import { ColorShowcase, RevealController, StickyOrder } from "./client";
+import { ProductStage } from "./stage/ProductStage";
 import { BenefitIcons, CallIcon, CashIcon, CheckIcon, PhoneIcon, TruckIcon } from "./icons";
 
 export default async function Home() {
@@ -73,15 +74,17 @@ export default async function Home() {
       <main id="top">
         {/* 1. Opening scene */}
         <section className="hero" aria-labelledby="hero-title">
-          <div className="hero-glow" aria-hidden />
+          <div className="hero-stage">
+            <ProductStage colors={product.colors} accent={accent} name={product.name} />
+          </div>
           <div className="hero-copy">
             <p className="eyebrow">
-              {settings.storeName} <span aria-hidden>·</span> <span dir="ltr">{product.modelNumber}</span>
+              <span dir="ltr">{settings.storeName}</span> <span aria-hidden>·</span> <span dir="ltr">{product.modelNumber}</span>
             </p>
             <h1 id="hero-title">
               {product.headline.includes("7 في 1") ? (
                 <>
-                  {product.headline.replace("7 في 1", "").trim()}{" "}
+                  <span className="h1-line">{product.headline.replace("7 في 1", "").trim()}</span>
                   <span className="seven">
                     7<small>في</small>1
                   </span>
@@ -91,7 +94,6 @@ export default async function Home() {
               )}
             </h1>
             {product.subheadline && <p className="lede">{product.subheadline}</p>}
-            {product.keyBenefit && <p className="key-benefit">{product.keyBenefit}</p>}
 
             <div className="price-row">
               {price ? (
@@ -115,26 +117,13 @@ export default async function Home() {
               <a className="btn btn-primary btn-large" href="#order">
                 {open ? "اطلب الآن" : "تواصل معنا للطلب"}
               </a>
-              <div className="hero-colors" aria-label="الألوان المتوفرة">
-                {product.colors.map((c) => (
-                  <span key={c.key} className={`chip swatch-${c.key}`}>
-                    <span className="dot" aria-hidden />
-                    {c.label}
-                  </span>
-                ))}
-              </div>
+              {product.keyBenefit && <p className="key-benefit">{product.keyBenefit}</p>}
             </div>
             {product.availability === "sold_out" && <p className="stock-note">نفدت الكمية حالياً.</p>}
           </div>
-
-          <figure className="hero-visual">
-            <ProductPicture
-              slug="duo"
-              priority
-              sizes="(min-width: 960px) 55vw, 100vw"
-              alt={`${product.name} باللونين الأسود والبيج`}
-            />
-          </figure>
+          <a href="#story" className="scroll-cue" aria-label="اكتشف المزيد">
+            <span aria-hidden />
+          </a>
         </section>
 
         {/* uses strip */}
@@ -148,8 +137,30 @@ export default async function Home() {
           </section>
         )}
 
+        {product.functions.length > 0 && (
+          <section className="seven-band" aria-labelledby="seven-title">
+            <div className="seven-giant" aria-hidden>
+              7×1
+            </div>
+            <div className="seven-inner" data-reveal>
+              <p className="eyebrow">جهاز واحد · أقراص قابلة للتبديل</p>
+              <h2 id="seven-title">كل تقطيعة تحتاجها، بقرص واحد.</h2>
+            </div>
+            <ol className="fn-grid">
+              {product.functions.map((f, i) => (
+                <li key={f} data-reveal style={{ ["--d" as string]: `${i * 70}ms` }}>
+                  <span className="fn-num" aria-hidden>
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+
         {/* 2. Product story */}
-        <section className="story" aria-labelledby="story-title">
+        <section className="story" id="story" aria-labelledby="story-title">
           <div className="story-head" data-reveal>
             <p className="eyebrow">لماذا Pro Max</p>
             <h2 id="story-title">مطبخك، أسرع وأنظف.</h2>
@@ -172,19 +183,7 @@ export default async function Home() {
           <div className="gallery-copy" data-reveal>
             <p className="eyebrow">لونان مميزان</p>
             <h2 id="gallery-title">اختر لون مطبخك.</h2>
-            {product.functions.length > 0 && (
-              <>
-                <h3 className="sub">الوظائف</h3>
-                <ul className="functions">
-                  {product.functions.map((f) => (
-                    <li key={f}>
-                      <CheckIcon />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
+            <p className="gallery-text">صورتان حقيقيتان للجهاز مع الأقراص الأربعة وشبكة التقطيع. اختر اللون لتراه.</p>
             {product.included.length > 0 && (
               <>
                 <h3 className="sub">داخل العلبة</h3>

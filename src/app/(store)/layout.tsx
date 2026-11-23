@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/cairo"; // self-hosted, no runtime call to Google
+import "@fontsource-variable/alexandria"; // self-hosted, no runtime call to Google
 import { getProduct, getSettings } from "@/lib/db";
 import "./store.css";
 
@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#15110e",
+  themeColor: "#060505",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
