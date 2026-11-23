@@ -10,16 +10,14 @@ export type StoreSettings = {
   tagline: string;
   supportPhone: string;
   whatsappNumber: string;
-  supportEmail: string;
   supportHours: string;
-  businessAddress: string;
   currencyCode: string; // ISO 4217, e.g. "EGP", "SAR", "AED", "MAD", "IQD"
-  deliveryFee: number; // major units
+  deliveryFee: number; // major units, delivery inside (الداخل)
+  deliveryFeeWestBank: number; // major units, delivery to the West Bank (الضفة)
   freeDeliveryFrom: number; // order subtotal for free delivery; 0 = never
   serviceArea: string;
   deliveryEstimate: string;
   returnsPolicy: string;
-  privacyNote: string;
   announcement: string;
   accentColor: string; // hex
 };
@@ -56,17 +54,14 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   tagline: "قطاعة السلطات 7 في 1",
   supportPhone: "",
   whatsappNumber: "",
-  supportEmail: "",
   supportHours: "",
-  businessAddress: "",
   currencyCode: "ILS",
-  deliveryFee: 0,
+  deliveryFee: 50,
+  deliveryFeeWestBank: 70,
   freeDeliveryFrom: 0,
   serviceArea: "",
   deliveryEstimate: "",
   returnsPolicy: "",
-  privacyNote:
-    "نستخدم اسمك ورقم هاتفك وعنوانك فقط لتأكيد طلبك وتوصيله والتواصل معك بخصوصه، ولا نشاركها لأي غرض آخر.",
   announcement: "",
   accentColor: "#f26722",
 };
@@ -174,9 +169,21 @@ export function formatMoney(cents: number, currency: string, locale = "ar-u-nu-l
   }).format(amount);
 }
 
-/** Delivery fee in cents for a given subtotal (cents). */
-export function deliveryFeeCents(settings: StoreSettings, subtotalCents: number): number {
-  const fee = toCents(settings.deliveryFee);
+export const DELIVERY_ZONES = [
+  { key: "inside", label: "الداخل" },
+  { key: "westbank", label: "الضفة" },
+] as const;
+export type DeliveryZone = (typeof DELIVERY_ZONES)[number]["key"];
+export function isZone(v: unknown): v is DeliveryZone {
+  return DELIVERY_ZONES.some((z) => z.key === v);
+}
+export function zoneFee(settings: StoreSettings, zone: DeliveryZone): number {
+  return toCents(zone === "westbank" ? settings.deliveryFeeWestBank : settings.deliveryFee);
+}
+
+/** Delivery fee in cents for a zone and subtotal (cents). */
+export function deliveryFeeCents(settings: StoreSettings, subtotalCents: number, zone: DeliveryZone): number {
+  const fee = zoneFee(settings, zone);
   const freeFrom = toCents(settings.freeDeliveryFrom);
   if (freeFrom > 0 && subtotalCents >= freeFrom) return 0;
   return Math.max(0, fee);

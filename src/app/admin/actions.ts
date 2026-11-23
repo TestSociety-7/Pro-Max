@@ -158,8 +158,6 @@ export async function updateSettings(_prev: FormState, fd: FormData): Promise<Fo
   const currencyCode = s(fd, "currencyCode", 3).toUpperCase();
   if (currencyCode && !isValidCurrency(currencyCode)) errors.currencyCode = "استخدم رمز عملة من 3 أحرف مثل ILS.";
 
-  const email = s(fd, "supportEmail", 120);
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.supportEmail = "أدخل بريداً إلكترونياً صحيحاً أو اتركه فارغاً.";
 
   const phone = s(fd, "supportPhone", 30);
   if (phone && !/^\+?[\d\s()-]{6,24}$/.test(phone)) errors.supportPhone = "استخدم الأرقام والمسافات و + و - فقط.";
@@ -175,16 +173,14 @@ export async function updateSettings(_prev: FormState, fd: FormData): Promise<Fo
     tagline: s(fd, "tagline", 120),
     supportPhone: phone,
     whatsappNumber: whatsapp,
-    supportEmail: email,
     supportHours: s(fd, "supportHours", 120),
-    businessAddress: s(fd, "businessAddress", 300),
     currencyCode,
     deliveryFee: num(fd, "deliveryFee", errors),
+    deliveryFeeWestBank: num(fd, "deliveryFeeWestBank", errors),
     freeDeliveryFrom: num(fd, "freeDeliveryFrom", errors),
     serviceArea: s(fd, "serviceArea", 300),
     deliveryEstimate: s(fd, "deliveryEstimate", 120),
     returnsPolicy: s(fd, "returnsPolicy", 1500),
-    privacyNote: s(fd, "privacyNote", 600) || current.privacyNote,
     announcement: s(fd, "announcement", 160),
     accentColor: accent || current.accentColor,
   };

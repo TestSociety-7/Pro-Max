@@ -5,6 +5,7 @@ import { placeOrder, type OrderState } from "./actions";
 import { useSelectedColor } from "./client";
 import { validateOrder, type FieldErrors, type OrderInput } from "@/lib/validation";
 import { CheckIcon } from "./icons";
+import { Celebration } from "./showcase";
 
 type Props = {
   /** Generated on the server per page view; retries of the same submit reuse it. */
@@ -12,11 +13,10 @@ type Props = {
   open: boolean;
   unitCents: number;
   currency: string;
-  deliveryFeeCents: number;
+  zones: { key: string; label: string; feeCents: number }[];
   freeDeliveryFromCents: number;
   maxPerOrder: number;
   colors: { key: string; label: string; available: boolean }[];
-  privacyNote: string;
   supportPhone: string;
   deliveryEstimate: string;
 };
@@ -35,13 +35,14 @@ function money(cents: number, currency: string) {
   }
 }
 
-const FIELD_ORDER: (keyof OrderInput)[] = ["color", "quantity", "name", "phone", "address", "area", "note", "consent"];
+const FIELD_ORDER: (keyof OrderInput)[] = ["color", "quantity", "zone", "name", "phone", "address", "area", "note"];
 
 export function OrderForm(p: Props) {
   const [state, action, pending] = useActionState<OrderState, FormData>(placeOrder, { status: "idle" });
   const available = p.colors.filter((c) => c.available);
   const [color, setColor] = useSelectedColor(available[0]?.key ?? "");
   const [qty, setQty] = useState(1);
+  const [zone, setZone] = useState("");
   const key = p.idempotencyKey;
   const [clientErrors, setClientErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState(false);
@@ -63,7 +64,8 @@ export function OrderForm(p: Props) {
   }, [state]);
 
   const subtotal = p.unitCents * qty;
-  const fee = p.freeDeliveryFromCents > 0 && subtotal >= p.freeDeliveryFromCents ? 0 : p.deliveryFeeCents;
+  const zoneFeeCents = p.zones.find((z) => z.key === zone)?.feeCents ?? 0;
+  const fee = !zone ? 0 : p.freeDeliveryFromCents > 0 && subtotal >= p.freeDeliveryFromCents ? 0 : zoneFeeCents;
   const total = subtotal + fee;
 
   const values = state.status === "error" ? state.values ?? {} : {};
@@ -79,7 +81,7 @@ export function OrderForm(p: Props) {
       note: s("note"),
       color: s("color"),
       quantity: Number(s("quantity")),
-      consent: s("consent") === "on",
+      zone: s("zone"),
     };
   }
 
@@ -115,8 +117,14 @@ export function OrderForm(p: Props) {
   if (state.status === "success") {
     return (
       <div className="order-success" ref={successRef} tabIndex={-1} role="status" aria-live="polite">
-        <div className="success-badge" aria-hidden>
-          <CheckIcon />
+        <Celebration run />
+        <div className="success-3d" aria-hidden>
+          <span className="success-ring" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={color === "beige" ? "/product/cut-beige-700.webp" : "/product/cut-black-700.webp"} alt="" width={200} height={360} />
+          <span className="success-badge">
+            <CheckIcon />
+          </span>
         </div>
         <h3>تم استلام طلبك، شكراً {state.name}!</h3>
         <p className="success-ref">
@@ -243,6 +251,30 @@ export function OrderForm(p: Props) {
         {err("quantity")}
       </div>
 
+      <fieldset className="field">
+        <legend>منطقة التوصيل</legend>
+        <div className="zone-options">
+          {p.zones.map((z) => (
+            <label key={z.key} className="zone-option">
+              <input
+                type="radio"
+                name="zone"
+                value={z.key}
+                checked={zone === z.key}
+                onChange={() => {
+                  setZone(z.key);
+                  if (touched && formRef.current) setClientErrors(validateOrder({ ...readForm(formRef.current), zone: z.key }, opts));
+                }}
+                {...a11y("zone")}
+              />
+              <span className="zone-name">{z.label}</span>
+              <span className="zone-fee">{z.feeCents ? money(z.feeCents, p.currency) : "توصيل مجاني"}</span>
+            </label>
+          ))}
+        </div>
+        {err("zone")}
+      </fieldset>
+
       <div className="field">
         <label htmlFor="name">الاسم الكامل</label>
         <input id="name" name="name" autoComplete="name" defaultValue={values.name} onBlur={onBlurValidate} maxLength={80} {...a11y("name")} />
@@ -285,7 +317,7 @@ export function OrderForm(p: Props) {
 
       <div className="field">
         <label htmlFor="area">
-          المنطقة / المدينة <span className="optional">(اختياري)</span>
+          المدينة / البلدة <span className="optional">(اختياري)</span>
         </label>
         <input id="area" name="area" autoComplete="address-level2" defaultValue={values.area} maxLength={80} {...a11y("area")} />
         {err("area")}
@@ -306,7 +338,7 @@ export function OrderForm(p: Props) {
         </div>
         <div>
           <span>التوصيل</span>
-          <span>{fee === 0 ? (p.deliveryFeeCents === 0 ? "مجاني" : "مجاني لهذا الطلب") : money(fee, p.currency)}</span>
+          <span>{!zone ? "اختر المنطقة" : fee === 0 ? (zoneFeeCents === 0 ? "مجاني" : "مجاني لهذا الطلب") : money(fee, p.currency)}</span>
         </div>
         <div className="summary-total">
           <span>الإجمالي عند الاستلام</span>
@@ -317,14 +349,6 @@ export function OrderForm(p: Props) {
       <p className="cod-note" id="cod-note">
         <strong>الدفع نقداً عند الاستلام.</strong> لا تحتاج إلى بطاقة، ولن نطلب منك أي بيانات دفع.
       </p>
-
-      <div className="field consent">
-        <label>
-          <input type="checkbox" name="consent" onChange={onBlurValidate} {...a11y("consent")} />
-          <span>{p.privacyNote}</span>
-        </label>
-        {err("consent")}
-      </div>
 
       {state.status === "error" && (
         <p className="form-error" role="alert" ref={errorRef} tabIndex={-1}>
