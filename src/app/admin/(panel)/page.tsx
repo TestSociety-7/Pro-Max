@@ -5,6 +5,7 @@ import { ORDER_STATUSES, STATUS_LABEL, formatMoney, isStatus, isValidCurrency } 
 import { CountUp, Tilt } from "../LiveTools";
 import { IcSearch } from "../icons";
 import { SwipeOrders } from "../SwipeOrders";
+import { LiveVisitors } from "../LiveVisitors";
 import { Welcome } from "../Welcome";
 import { dayKey, fmtDate } from "../fmt";
 
@@ -64,6 +65,7 @@ export default async function OrdersPage({
           <p className="eyebrow">نظرة عامة</p>
           <h1>الطلبات</h1>
         </div>
+        <LiveVisitors />
       </div>
 
       {orderingClosed && (

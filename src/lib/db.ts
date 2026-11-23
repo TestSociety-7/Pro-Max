@@ -144,6 +144,11 @@ async function migrate(s: Store) {
       data TEXT NOT NULL,
       created_at TEXT NOT NULL
     )`,
+    `CREATE TABLE IF NOT EXISTS presence (
+      id TEXT PRIMARY KEY,
+      last_seen ${big} NOT NULL,
+      path TEXT NOT NULL DEFAULT ''
+    )`,
   ];
   for (const q of stmts) await s.query(q);
 }
@@ -429,4 +434,39 @@ export async function deletePushSub(endpoint: string) {
 export async function listPushSubs(): Promise<{ endpoint: string; data: string }[]> {
   const rows = await (await db()).query("SELECT endpoint, data FROM push_subs");
   return rows.map((r) => ({ endpoint: String(r.endpoint), data: String(r.data) }));
+}
+
+// ---- live visitors -------------------------------------------------------
+
+export const PRESENCE_WINDOW_MS = 60_000;
+
+/** A store visitor's heartbeat. Old rows are swept now and then so the table stays tiny. */
+export async function touchPresence(id: string, path: string) {
+  const c = await db();
+  const now = Date.now();
+  await c.query(
+    `INSERT INTO presence (id, last_seen, path) VALUES (?, ?, ?)
+     ON CONFLICT (id) DO UPDATE SET last_seen = excluded.last_seen, path = excluded.path`,
+    [id, now, path],
+  );
+  if (Math.random() < 0.1) await c.query("DELETE FROM presence WHERE last_seen < ?", [now - 10 * 60_000]);
+}
+
+export async function leavePresence(id: string) {
+  await (await db()).query("DELETE FROM presence WHERE id = ?", [id]);
+}
+
+export async function countLiveVisitors(): Promise<{ total: number; ordering: number }> {
+  const rows = await (await db()).query(
+    "SELECT path, COUNT(*) AS n FROM presence WHERE last_seen >= ? GROUP BY path",
+    [Date.now() - PRESENCE_WINDOW_MS],
+  );
+  let total = 0;
+  let ordering = 0;
+  for (const r of rows) {
+    const n = Number(r.n) || 0;
+    total += n;
+    if (r.path === "order") ordering += n;
+  }
+  return { total, ordering };
 }

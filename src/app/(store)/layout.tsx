@@ -3,6 +3,7 @@ import "@fontsource-variable/alexandria"; // self-hosted, no runtime call to Goo
 import { getProduct, getSettings } from "@/lib/db";
 import { ICON_METADATA } from "@/lib/pwa";
 import { SITE_URL } from "@/lib/site";
+import { Presence } from "./Presence";
 import "./store.css";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +38,10 @@ export const viewport: Viewport = {
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ar" dir="rtl">
-      <body className="store">{children}</body>
+      <body className="store">
+        {children}
+        <Presence />
+      </body>
     </html>
   );
 }
