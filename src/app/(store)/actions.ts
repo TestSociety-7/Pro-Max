@@ -2,6 +2,8 @@
 
 import { headers } from "next/headers";
 import { createOrder, getProduct, getSettings } from "@/lib/db";
+import { notifyAdmins } from "@/lib/push";
+import { after } from "next/server";
 import { deliveryFeeCents, formatMoney, orderingOpen, toCents } from "@/lib/content";
 import { cleanPhone, normalizeDigits, validateOrder, type FieldErrors, type OrderInput } from "@/lib/validation";
 
@@ -93,7 +95,7 @@ export async function placeOrder(_prev: OrderState, fd: FormData): Promise<Order
   const colorLabel = availableColors.find((c) => c.key === input.color)!.label;
 
   try {
-    const { order } = await createOrder({
+    const { order, duplicate } = await createOrder({
       idempotencyKey,
       customerName: input.name.trim(),
       phone: cleanPhone(input.phone),
@@ -108,6 +110,17 @@ export async function placeOrder(_prev: OrderState, fd: FormData): Promise<Order
       currency: settings.currencyCode,
       productName: product.name,
     });
+    if (!duplicate) {
+      // send after the customer gets their confirmation, so ordering never waits on push
+      after(() =>
+        notifyAdmins({
+        title: `طلب جديد ${order.ref}`,
+        body: `${order.customerName} · ${order.quantity} × ${order.color} · ${formatMoney(order.totalCents, order.currency)}`,
+        url: `/admin/orders/${order.id}`,
+          tag: order.ref,
+        }),
+      );
+    }
     return {
       status: "success",
       ref: order.ref,

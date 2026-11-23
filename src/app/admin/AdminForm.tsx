@@ -39,7 +39,8 @@ export function AdminForm({
         {children}
         <div className="form-footer">
           <button type="submit" className="a-btn a-btn-primary" disabled={pending} aria-busy={pending}>
-            {pending ? "Saving…" : submitLabel}
+            {pending ? <span className="spinner" aria-hidden /> : null}
+            {pending ? "جارٍ الحفظ…" : submitLabel}
           </button>
           {state.message && (
             <p

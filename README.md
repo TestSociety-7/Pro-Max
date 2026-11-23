@@ -49,6 +49,12 @@ Vercel's filesystem is read-only, so the local SQLite file cannot be used in pro
 
 See `public/product/README.md`. Photos are pre-sized WebP files referenced from `src/app/(store)/ProductPicture.tsx`.
 
+## Home-screen apps and order notifications
+
+- The store (`/`) and the control panel (`/admin`) are separate installable apps with the same icon (`public/icon-*.png`, `apple-touch-icon.png`, `favicon.ico`). Manifests: `/manifest.webmanifest` and `/admin/manifest.webmanifest`.
+- In the control panel the bell button turns on push notifications for new orders (`public/sw.js`, `src/lib/push.ts`). Web Push keys are created on first use and stored in the database, so no extra environment variables are needed. On iPhone, push works only after "Add to Home Screen" (iOS 16.4+).
+- While the panel is open it also checks for new orders every 20 seconds and shows a toast with a sound and an app badge.
+
 ## 3D hero stage
 
 The hero is a real-time three.js scene (`src/app/(store)/stage/`): the owner's two product photos, cut out from their backgrounds (`public/product/cut-*.webp`), stand on a lit turntable with modelled blade discs orbiting around them. Visitors can drag to spin it, and the colour buttons rotate the chosen unit to the front.

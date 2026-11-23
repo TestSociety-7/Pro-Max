@@ -13,15 +13,15 @@ export class AuthConfigError extends Error {}
 
 function secret(): Buffer {
   const s = process.env.SESSION_SECRET ?? "";
-  if (s.length < 32) throw new AuthConfigError("SESSION_SECRET is missing or shorter than 32 characters.");
+  if (s.length < 32) throw new AuthConfigError("المتغير SESSION_SECRET غير موجود أو أقصر من 32 حرفاً.");
   return Buffer.from(s);
 }
 
 export function authConfigProblem(): string | null {
   if ((process.env.SESSION_SECRET ?? "").length < 32)
-    return "SESSION_SECRET is missing or shorter than 32 characters.";
+    return "المتغير SESSION_SECRET غير موجود أو أقصر من 32 حرفاً.";
   if (!(process.env.ADMIN_PASSWORD_HASH ?? "").startsWith("scrypt:"))
-    return "ADMIN_PASSWORD_HASH is missing. Run `npm run hash-password` and add the result to your environment.";
+    return "المتغير ADMIN_PASSWORD_HASH غير موجود. أضفه في إعدادات Vercel ثم أعد النشر.";
   return null;
 }
 

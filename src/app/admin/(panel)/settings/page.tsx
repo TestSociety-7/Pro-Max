@@ -11,82 +11,81 @@ export default async function SettingsPage() {
   return (
     <>
       <div className="page-head">
-        <h1>Store settings</h1>
+        <div><p className="eyebrow">المتجر</p><h1>الإعدادات</h1></div>
       </div>
       <p className="lead">
-        These details appear across the store: header, delivery section, support box, order form and footer. Saving
-        updates the live store immediately — no code changes needed.
+        تظهر هذه البيانات في كل أنحاء المتجر: أعلى الصفحة وقسم التوصيل والدعم ونموذج الطلب. الحفظ يحدّث المتجر فوراً.
       </p>
 
-      <AdminForm action={updateSettings} submitLabel="Save settings" className="admin-form wide">
+      <AdminForm action={updateSettings} submitLabel="حفظ الإعدادات" className="admin-form wide">
         <fieldset className="card">
-          <legend>Store identity</legend>
+          <legend>هوية المتجر</legend>
           <div className="grid-2">
-            <Field name="storeName" label="Store / site name" hint="Shown in the header, browser tab and footer.">
+            <Field name="storeName" label="اسم المتجر" hint="يظهر في أعلى الصفحة وعنوان المتصفح والتذييل.">
               <input {...f("storeName")} defaultValue={s.storeName} dir="auto" required />
             </Field>
-            <Field name="tagline" label="Tagline" hint="Shown in the footer.">
+            <Field name="tagline" label="الشعار النصي" hint="يظهر في التذييل.">
               <input {...f("tagline")} defaultValue={s.tagline} dir="auto" />
             </Field>
           </div>
-          <Field name="announcement" label="Announcement bar (optional)" hint="A short line shown above the header. Leave empty to hide.">
+          <Field name="announcement" label="شريط الإعلان (اختياري)" hint="سطر قصير أعلى الصفحة. اتركه فارغاً لإخفائه.">
             <input {...f("announcement")} defaultValue={s.announcement} dir="auto" />
           </Field>
-          <Field name="accentColor" label="Accent color" hint="Buttons and highlights. Default is the logo orange #f26722.">
+          <Field name="accentColor" label="اللون الرئيسي" hint="لون الأزرار والتمييز. الافتراضي برتقالي الشعار.">
             <input {...f("accentColor")} type="color" defaultValue={s.accentColor} />
           </Field>
         </fieldset>
 
         <fieldset className="card">
-          <legend>Contact & support</legend>
+          <legend>التواصل والدعم</legend>
           <div className="grid-2">
-            <Field name="supportPhone" label="Support phone" hint="Shown in the header and support box, with tap-to-call.">
+            <Field name="supportPhone" label="هاتف الدعم" hint="يظهر أعلى الصفحة وفي قسم الدعم مع زر اتصال.">
               <input {...f("supportPhone")} type="tel" defaultValue={s.supportPhone} dir="ltr" />
             </Field>
-            <Field name="whatsappNumber" label="WhatsApp number" hint="Full international number, e.g. +20 100 000 0000.">
+            <Field name="whatsappNumber" label="رقم واتساب" hint="الرقم الدولي كاملاً، مثال: 972500000000+">
               <input {...f("whatsappNumber")} type="tel" defaultValue={s.whatsappNumber} dir="ltr" />
             </Field>
-            <Field name="supportEmail" label="Support email">
+            <Field name="supportEmail" label="البريد الإلكتروني">
               <input {...f("supportEmail")} type="email" defaultValue={s.supportEmail} />
             </Field>
-            <Field name="supportHours" label="Support hours">
+            <Field name="supportHours" label="ساعات الدعم">
               <input {...f("supportHours")} defaultValue={s.supportHours} dir="auto" placeholder="مثال: يومياً من 10 صباحاً حتى 10 مساءً" />
             </Field>
           </div>
-          <Field name="businessAddress" label="Business address (optional)" hint="Shown in the footer.">
+          <Field name="businessAddress" label="عنوان النشاط (اختياري)" hint="يظهر في التذييل.">
             <input {...f("businessAddress")} defaultValue={s.businessAddress} dir="auto" />
           </Field>
         </fieldset>
 
         <fieldset className="card">
-          <legend>Money & delivery</legend>
+          <legend>العملة والتوصيل</legend>
           <div className="grid-3">
-            <Field name="currencyCode" label="Currency code" hint="ILS = Israeli shekel (₪). Other 3-letter codes work too, e.g. JOD, USD.">
+            <Field name="currencyCode" label="العملة" hint="ILS = شيكل (₪).">
               <input {...f("currencyCode")} defaultValue={s.currencyCode} maxLength={3} style={{ textTransform: "uppercase" }} />
             </Field>
-            <Field name="deliveryFee" label="Delivery fee" hint="0 = free delivery.">
+            <Field name="deliveryFee" label="رسوم التوصيل" hint="0 = توصيل مجاني.">
               <input {...f("deliveryFee")} inputMode="decimal" defaultValue={s.deliveryFee || ""} placeholder="0" />
             </Field>
-            <Field name="freeDeliveryFrom" label="Free delivery from (optional)" hint="Order subtotal. Leave empty for never.">
+            <Field name="freeDeliveryFrom" label="توصيل مجاني ابتداءً من (اختياري)" hint="قيمة الطلب. اتركه فارغاً لإلغائه.">
               <input {...f("freeDeliveryFrom")} inputMode="decimal" defaultValue={s.freeDeliveryFrom || ""} />
             </Field>
           </div>
           <div className="grid-2">
-            <Field name="serviceArea" label="Service area" hint="Where you deliver.">
+            <Field name="serviceArea" label="مناطق التوصيل" hint="أين توصّل الطلبات.">
               <input {...f("serviceArea")} defaultValue={s.serviceArea} dir="auto" placeholder="مثال: جميع المحافظات" />
             </Field>
-            <Field name="deliveryEstimate" label="Delivery estimate" hint='Shown as "خلال …".'>
+            <Field name="deliveryEstimate" label="مدة التوصيل" hint='تظهر بصيغة «خلال …».'>
               <input {...f("deliveryEstimate")} defaultValue={s.deliveryEstimate} dir="auto" placeholder="مثال: 2 إلى 4 أيام عمل" />
             </Field>
           </div>
         </fieldset>
 
         <fieldset className="card">
-          <legend>Policies</legend>
-          <Field name="returnsPolicy" label="Returns / exchange policy" hint="Leave empty to show “contact us about returns”.">
+          <legend>السياسات</legend>
+          <Field name="returnsPolicy" label="سياسة الإرجاع والاستبدال" hint="إذا تركته فارغاً يظهر «تواصل معنا بخصوص الإرجاع».">
             <textarea {...f("returnsPolicy")} rows={4} defaultValue={s.returnsPolicy} dir="auto" />
           </Field>
-          <Field name="privacyNote" label="Order-form consent text" hint="Customers tick this before ordering.">
+          <Field name="privacyNote" label="نص الموافقة في نموذج الطلب" hint="يوافق عليه العميل قبل الطلب.">
             <textarea {...f("privacyNote")} rows={3} defaultValue={s.privacyNote} dir="auto" />
           </Field>
         </fieldset>
