@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "@fontsource-variable/alexandria"; // self-hosted, no runtime call to Google
 import { getProduct, getSettings } from "@/lib/db";
 import { ICON_METADATA } from "@/lib/pwa";
+import { SITE_URL } from "@/lib/site";
 import "./store.css";
 
 export const dynamic = "force-dynamic";
@@ -11,9 +12,9 @@ export async function generateMetadata(): Promise<Metadata> {
     const [s, p] = await Promise.all([getSettings(), getProduct()]);
     const title = `${p.headline} | ${s.storeName}`;
     const description = [p.subheadline, "الدفع عند الاستلام."].filter(Boolean).join(" ");
-    const host = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
     return {
-      metadataBase: host ? new URL(`https://${host}`) : undefined,
+      metadataBase: new URL(SITE_URL),
+      alternates: { canonical: "/" },
       title,
       description,
       openGraph: { title, description, images: ["/og.jpg"], locale: "ar" },

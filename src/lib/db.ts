@@ -324,6 +324,9 @@ export async function listOrders(opts: { status?: OrderStatus | "all"; q?: strin
   if (opts.status && opts.status !== "all") {
     where.push("status = ?");
     args.push(opts.status);
+  } else if (opts.status === "all") {
+    // "All" is the working list: cancelled orders only show under their own filter.
+    where.push("status <> 'cancelled'");
   }
   const q = opts.q?.trim();
   if (q) {
@@ -357,6 +360,12 @@ export async function updateOrderStatus(id: number, status: OrderStatus, adminNo
     new Date().toISOString(),
     id,
   ]);
+}
+
+export async function deleteOrders(ids: number[]) {
+  const clean = ids.filter((n) => Number.isInteger(n) && n > 0).slice(0, 100);
+  if (!clean.length) return;
+  await (await db()).query(`DELETE FROM orders WHERE id IN (${clean.map(() => "?").join(",")})`, clean);
 }
 
 /* --------------------------- login throttle ---------------------------- */

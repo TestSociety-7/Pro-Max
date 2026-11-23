@@ -1586,7 +1586,7 @@ h2 {
   --ox: 50%;
   --oy: 50%;
   position: relative;
-  height: 420svh;
+  height: 250svh;
 }
 .spot-sticky {
   position: sticky;
@@ -1903,3 +1903,29 @@ h2 {
 .btn-whatsapp:hover {
   background: #2fe372;
 }
+
+/* compact delivery steps: 2×2 on phones */
+.steps {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 24px;
+}
+.steps li {
+  padding: 16px 14px;
+}
+.step-icon {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 10px;
+}
+.steps h3 {
+  font-size: 0.98rem;
+}
+.steps p {
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.footer-credit { margin-top: .4rem; font-size: .82rem; opacity: .75; direction: ltr; }
+.footer-credit a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.footer-credit a:hover { opacity: 1; color: var(--beige, #d8c3a5); }

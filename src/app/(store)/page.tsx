@@ -6,7 +6,7 @@ import { OrderForm } from "./OrderForm";
 import { ColorShowcase, RevealController, StickyOrder } from "./client";
 import { ProductStage } from "./stage/ProductStage";
 import { DiscRing, Spotlight } from "./showcase";
-import { BenefitIcons, CallIcon, CashIcon, CheckIcon, PhoneIcon, TruckIcon } from "./icons";
+import { CallIcon, CashIcon, CheckIcon, PhoneIcon, TruckIcon } from "./icons";
 
 export default async function Home() {
   let product = DEFAULT_PRODUCT;
@@ -121,7 +121,7 @@ export default async function Home() {
             </div>
             {product.availability === "sold_out" && <p className="stock-note">نفدت الكمية حالياً.</p>}
           </div>
-          <a href="#story" className="scroll-cue" aria-label="اكتشف المزيد">
+          <a href="#gallery-title" className="scroll-cue" aria-label="اكتشف المزيد">
             <span aria-hidden />
           </a>
         </section>
@@ -137,48 +137,7 @@ export default async function Home() {
           </section>
         )}
 
-        {product.functions.length > 0 && (
-          <section className="seven-band" aria-labelledby="seven-title">
-            <div className="seven-giant" aria-hidden>
-              7×1
-            </div>
-            <div className="seven-inner" data-reveal>
-              <p className="eyebrow">جهاز واحد · أقراص قابلة للتبديل</p>
-              <h2 id="seven-title">كل تقطيعة تحتاجها، بقرص واحد.</h2>
-            </div>
-            <ol className="fn-grid">
-              {product.functions.map((f, i) => (
-                <li key={f} data-reveal style={{ ["--d" as string]: `${i * 70}ms` }}>
-                  <span className="fn-num" aria-hidden>
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <span>{f}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
-
         <Spotlight src="/product/cut-black.webp" alt={`${product.name} باللون الأسود من قريب`} />
-
-        {/* 2. Product story */}
-        <section className="story" id="story" aria-labelledby="story-title">
-          <div className="story-head" data-reveal>
-            <p className="eyebrow">لماذا Pro Max</p>
-            <h2 id="story-title">مطبخك، أسرع وأنظف.</h2>
-            {product.story && <p className="story-text">{product.story}</p>}
-          </div>
-          {product.benefits.length > 0 && (
-            <ul className="benefits">
-              {product.benefits.map((b, i) => (
-                <li key={b} data-reveal style={{ ["--d" as string]: `${i * 60}ms` }}>
-                  <span className="benefit-icon">{BenefitIcons[i % BenefitIcons.length]}</span>
-                  <span>{b}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
 
         {/* 3. Cinematic presentation */}
         <section className="gallery" aria-labelledby="gallery-title">
@@ -186,19 +145,6 @@ export default async function Home() {
             <p className="eyebrow">لونان مميزان</p>
             <h2 id="gallery-title">اختر لون مطبخك.</h2>
             <p className="gallery-text">صورتان حقيقيتان للجهاز مع الأقراص الأربعة وشبكة التقطيع. اختر اللون لتراه.</p>
-            {product.included.length > 0 && (
-              <>
-                <h3 className="sub">داخل العلبة</h3>
-                <ul className="functions">
-                  {product.included.map((f) => (
-                    <li key={f}>
-                      <CheckIcon />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
           </div>
           <div data-reveal>
             <ColorShowcase
@@ -213,13 +159,6 @@ export default async function Home() {
 
         <DiscRing />
 
-        <section className="poster" aria-label="نظرة شاملة" data-reveal>
-          <ProductPicture
-            slug="poster-ar"
-            sizes="(min-width: 760px) 640px, 100vw"
-            alt="قطاعة السلطات 7×1 بلونين: أسود وبيج. لتقطيع البصل والخيار والجزر والملفوف والسلطة العربية، مناسبة لجميع أنواع السلطات ومثالية للاستخدام المنزلي."
-          />
-        </section>
 
         {/* 4. Delivery & COD */}
         <section className="delivery" aria-labelledby="delivery-title">
@@ -364,6 +303,12 @@ export default async function Home() {
         </div>
         <p className="muted">
           © {new Date().getFullYear()} {settings.storeName}
+        </p>
+        <p className="footer-credit">
+          Built by{" "}
+          <a href="https://www.instagram.com/mahdi_qaddah/" target="_blank" rel="noopener noreferrer" dir="ltr">
+            @mahdi_qaddah
+          </a>
         </p>
       </footer>
 
