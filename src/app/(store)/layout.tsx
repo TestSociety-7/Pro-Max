@@ -3,6 +3,7 @@ import "@fontsource-variable/alexandria"; // self-hosted, no runtime call to Goo
 import { getProduct, getSettings } from "@/lib/db";
 import { ICON_METADATA } from "@/lib/pwa";
 import { SITE_URL } from "@/lib/site";
+import { Analytics } from "@vercel/analytics/next";
 import { Presence } from "./Presence";
 import "./store.css";
 
@@ -41,6 +42,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       <body className="store">
         {children}
         <Presence />
+        {process.env.VERCEL ? <Analytics /> : null}
       </body>
     </html>
   );
