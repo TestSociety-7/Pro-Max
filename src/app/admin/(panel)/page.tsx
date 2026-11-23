@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
-import { countOrdersByStatus, getProduct, getSettings, listOrders } from "@/lib/db";
+import { countOrdersByStatus, databaseStatus, getProduct, getSettings, listOrders } from "@/lib/db";
 import { ORDER_STATUSES, STATUS_LABEL, formatMoney, isStatus, isValidCurrency } from "@/lib/content";
 
 function fmtDate(iso: string) {
@@ -33,9 +33,12 @@ export default async function OrdersPage({
     data = { orders, counts, product, settings };
   } catch (err) {
     console.error("admin orders", err);
+    const dbs = await databaseStatus();
     return (
       <div className="a-msg a-msg-err" role="alert">
-        Could not load orders. Check that DATABASE_URL is set correctly and the database is reachable, then reload.
+        <p>
+          <strong>Could not load orders.</strong> {dbs.error ?? "The database did not respond. Reload in a moment."}
+        </p>
       </div>
     );
   }

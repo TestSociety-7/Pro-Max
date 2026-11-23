@@ -13,7 +13,7 @@ export default async function Home() {
   try {
     [product, settings] = await Promise.all([getProduct(), getSettings()]);
   } catch (err) {
-    console.error("storefront: could not load content", err);
+    console.error("storefront: could not load content:", (err as Error)?.message ?? err);
     dbError = true;
   }
 
