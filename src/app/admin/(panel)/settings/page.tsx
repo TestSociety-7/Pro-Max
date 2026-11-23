@@ -61,7 +61,7 @@ export default async function SettingsPage() {
         <fieldset className="card">
           <legend>Money & delivery</legend>
           <div className="grid-3">
-            <Field name="currencyCode" label="Currency code" hint="3 letters: EGP, SAR, AED, KWD, MAD, IQD…">
+            <Field name="currencyCode" label="Currency code" hint="ILS = Israeli shekel (₪). Other 3-letter codes work too, e.g. JOD, USD.">
               <input {...f("currencyCode")} defaultValue={s.currencyCode} maxLength={3} style={{ textTransform: "uppercase" }} />
             </Field>
             <Field name="deliveryFee" label="Delivery fee" hint="0 = free delivery.">
