@@ -11,6 +11,7 @@ import {
   verifyPassword,
 } from "@/lib/auth";
 import {
+  countLiveVisitors,
   deletePushSub,
   deleteOrders,
   latestOrderId,
@@ -238,6 +239,15 @@ export async function unsubscribePush(endpoint: string): Promise<void> {
 export type NewOrderAlert = { id: number; ref: string; name: string; summary: string };
 
 /** Live alerts while the admin is open: orders created after `afterId`. Pass 0 to just get the current latest id. */
+export async function liveVisitors(): Promise<{ total: number; ordering: number }> {
+  await requireAdmin();
+  try {
+    return await countLiveVisitors();
+  } catch {
+    return { total: 0, ordering: 0 };
+  }
+}
+
 export async function checkNewOrders(afterId: number): Promise<{ latest: number; orders: NewOrderAlert[] }> {
   await requireAdmin();
   if (!Number.isInteger(afterId) || afterId < 1) return { latest: await latestOrderId(), orders: [] };
