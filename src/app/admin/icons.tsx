@@ -11,3 +11,4 @@ export const IcSearch = () => (<svg {...P}><circle cx="11" cy="11" r="7" /><path
 export const IcLock = () => (<svg {...P}><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>);
 export const IcArrow = () => (<svg {...P}><path d="M19 12H5M12 19l-7-7 7-7" /></svg>);
 export const IcTrash = () => (<svg {...P}><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6" /></svg>);
+export const IcGift = () => (<svg {...P}><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5" /></svg>);

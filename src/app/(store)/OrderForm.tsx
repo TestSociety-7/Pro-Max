@@ -6,6 +6,7 @@ import { useSelectedColor } from "./client";
 import { validateOrder, type FieldErrors, type OrderInput } from "@/lib/validation";
 import { CheckIcon, WhatsAppIcon } from "./icons";
 import { Celebration } from "./showcase";
+import { OFFER_EVENT, type OfferView } from "./offers";
 
 type Props = {
   /** Generated on the server per page view; retries of the same submit reuse it. */
@@ -19,6 +20,7 @@ type Props = {
   colors: { key: string; label: string; available: boolean }[];
   supportPhone: string;
   deliveryEstimate: string;
+  offers: OfferView[];
 };
 
 function money(cents: number, currency: string) {
@@ -43,6 +45,24 @@ export function OrderForm(p: Props) {
   const [color, setColor] = useSelectedColor(available[0]?.key ?? "");
   const [qty, setQty] = useState(1);
   const [zone, setZone] = useState("");
+  const [offerId, setOfferId] = useState("");
+  const [unitColors, setUnitColors] = useState<string[]>([]);
+  const offer = p.offers.find((o) => o.id === offerId);
+  const packRef = useRef<HTMLFieldSetElement>(null);
+
+  // "Order this offer" buttons on the page pick it here
+  useEffect(() => {
+    const on = (e: Event) => {
+      const id = String((e as CustomEvent).detail ?? "");
+      if (!p.offers.some((o) => o.id === id)) return;
+      setOfferId(id);
+      packRef.current?.classList.remove("flash-pick");
+      void packRef.current?.offsetWidth;
+      packRef.current?.classList.add("flash-pick");
+    };
+    window.addEventListener(OFFER_EVENT, on);
+    return () => window.removeEventListener(OFFER_EVENT, on);
+  }, [p.offers]);
   const key = p.idempotencyKey;
   const [clientErrors, setClientErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState(false);
@@ -56,7 +76,7 @@ export function OrderForm(p: Props) {
   useEffect(() => {
     if (state.status === "success" && state.whatsappUrl) {
       // Hand the order to WhatsApp so the store gets it as a message too.
-      const t = setTimeout(() => window.location.assign(state.whatsappUrl), 1600);
+      const t = setTimeout(() => window.location.assign(state.whatsappUrl), 1200);
       return () => clearTimeout(t);
     }
   }, [state]);
@@ -71,9 +91,14 @@ export function OrderForm(p: Props) {
     }
   }, [state]);
 
-  const subtotal = p.unitCents * qty;
+  const subtotal = offer ? offer.priceCents : p.unitCents * qty;
   const zoneFeeCents = p.zones.find((z) => z.key === zone)?.feeCents ?? 0;
-  const fee = !zone ? 0 : p.freeDeliveryFromCents > 0 && subtotal >= p.freeDeliveryFromCents ? 0 : zoneFeeCents;
+  const fee =
+    !zone || offer?.includesDelivery
+      ? 0
+      : p.freeDeliveryFromCents > 0 && subtotal >= p.freeDeliveryFromCents
+        ? 0
+        : zoneFeeCents;
   const total = subtotal + fee;
 
   const values = state.status === "error" ? state.values ?? {} : {};
@@ -94,9 +119,9 @@ export function OrderForm(p: Props) {
   }
 
   const opts = useMemo(
-    () => ({ maxPerOrder: p.maxPerOrder, colors: available.map((c) => c.key) }),
+    () => ({ maxPerOrder: offer ? offer.quantity : p.maxPerOrder, colors: available.map((c) => c.key) }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [p.maxPerOrder, p.colors],
+    [p.maxPerOrder, p.colors, offer],
   );
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -135,6 +160,21 @@ export function OrderForm(p: Props) {
           </span>
         </div>
         <h3>تم استلام طلبك، شكراً {state.name}!</h3>
+        {state.whatsappUrl && (
+          <ol className="wa-steps">
+            <li className="done">
+              <span aria-hidden>✓</span> تم حفظ الطلب
+            </li>
+            <li className="now">
+              <span aria-hidden>2</span> أرسل رسالة الطلب على واتساب لتأكيده
+            </li>
+          </ol>
+        )}
+        {state.whatsappUrl && (
+          <a className="btn btn-whatsapp btn-block wa-primary" href={state.whatsappUrl}>
+            <WhatsAppIcon /> إرسال الطلب على واتساب
+          </a>
+        )}
         <p className="success-ref">
           رقم الطلب: <strong dir="ltr">{state.ref}</strong>
         </p>
@@ -156,11 +196,6 @@ export function OrderForm(p: Props) {
           سنتصل بك على الرقم <bdi dir="ltr">{state.phone}</bdi> لتأكيد الطلب والعنوان
           {p.deliveryEstimate ? `، والتوصيل المتوقع: ${p.deliveryEstimate}.` : "."} ستدفع نقداً عند الاستلام.
         </p>
-        {state.whatsappUrl && (
-          <a className="btn btn-whatsapp btn-block" href={state.whatsappUrl}>
-            <WhatsAppIcon /> أرسل الطلب عبر واتساب
-          </a>
-        )}
         <p className="muted">احتفظ برقم الطلب في حال احتجت للتواصل معنا.</p>
         <button
           type="button"
@@ -214,55 +249,125 @@ export function OrderForm(p: Props) {
         </label>
       </div>
 
-      <fieldset className="field">
-        <legend>اللون</legend>
-        <div className="color-options">
-          {available.map((c) => (
-            <label key={c.key} className={`color-option swatch-${c.key}`}>
-              <input
-                type="radio"
-                name="color"
-                value={c.key}
-                checked={color === c.key}
-                onChange={() => setColor(c.key)}
-                {...a11y("color")}
-              />
-              <span className="dot" aria-hidden />
-              {c.label}
+      {p.offers.length > 0 && (
+        <fieldset className="field" ref={packRef}>
+          <legend>اختر الباقة</legend>
+          <div className="pack-options">
+            <label className="pack-option">
+              <input type="radio" name="pack" value="" checked={!offer} onChange={() => setOfferId("")} />
+              <span className="pack-dot" aria-hidden />
+              <span className="pack-name">
+                قطعة واحدة أو أكثر
+                <small>السعر العادي + التوصيل</small>
+              </span>
+              <span className="pack-price">{money(p.unitCents, p.currency)}</span>
             </label>
-          ))}
+            {p.offers.map((o) => (
+              <label key={o.id} className="pack-option">
+                {o.badge && <span className="pack-tag">{o.badge}</span>}
+                <input type="radio" name="pack" value={o.id} checked={offerId === o.id} onChange={() => setOfferId(o.id)} />
+                <span className="pack-dot" aria-hidden />
+                <span className="pack-name">
+                  {o.title}
+                  <small>
+                    {o.quantity === 1 ? "قطعة واحدة" : `${o.quantity} قطع`}{o.includesDelivery ? " · شامل التوصيل" : ""}
+                  </small>
+                </span>
+                <span className="pack-price">{money(o.priceCents, p.currency)}</span>
+              </label>
+            ))}
+          </div>
+          {offer && <input type="hidden" name="offer" value={offer.id} />}
+        </fieldset>
+      )}
+
+      <fieldset className="field">
+        <legend>{offer ? "لون كل قطعة" : "اللون"}</legend>
+        <div className={offer ? "unit-color" : undefined}>
+          {offer && <span className="unit-label">القطعة 1</span>}
+          <div className="color-options">
+            {available.map((c) => (
+              <label key={c.key} className={`color-option swatch-${c.key}`}>
+                <input
+                  type="radio"
+                  name="color"
+                  value={c.key}
+                  checked={color === c.key}
+                  onChange={() => setColor(c.key)}
+                  {...a11y("color")}
+                />
+                <span className="dot" aria-hidden />
+                {c.label}
+              </label>
+            ))}
+          </div>
         </div>
+        {offer &&
+          Array.from({ length: offer.quantity - 1 }, (_, k) => {
+            const n = k + 2;
+            const val = unitColors[n] ?? color;
+            return (
+              <div key={n} className="unit-color">
+                <span className="unit-label">القطعة {n}</span>
+                <div className="color-options">
+                  {available.map((c) => (
+                    <label key={c.key} className={`color-option swatch-${c.key}`}>
+                      <input
+                        type="radio"
+                        name={`color_${n}`}
+                        value={c.key}
+                        checked={val === c.key}
+                        onChange={() =>
+                          setUnitColors((u) => {
+                            const x = [...u];
+                            x[n] = c.key;
+                            return x;
+                          })
+                        }
+                      />
+                      <span className="dot" aria-hidden />
+                      {c.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         {err("color")}
       </fieldset>
 
-      <div className="field">
-        <label htmlFor="quantity">الكمية</label>
-        <div className="qty">
-          <button type="button" aria-label="إنقاص الكمية" onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1}>
-            −
-          </button>
-          <input
-            id="quantity"
-            name="quantity"
-            inputMode="numeric"
-            value={qty}
-            onChange={(e) => {
-              const n = parseInt(e.target.value.replace(/\D/g, ""), 10);
-              setQty(Number.isFinite(n) ? Math.min(Math.max(n, 1), p.maxPerOrder) : 1);
-            }}
-            {...a11y("quantity")}
-          />
-          <button
-            type="button"
-            aria-label="زيادة الكمية"
-            onClick={() => setQty((q) => Math.min(p.maxPerOrder, q + 1))}
-            disabled={qty >= p.maxPerOrder}
-          >
-            +
-          </button>
+      {offer ? (
+        <input type="hidden" name="quantity" value={offer.quantity} />
+      ) : (
+        <div className="field">
+          <label htmlFor="quantity">الكمية</label>
+          <div className="qty">
+            <button type="button" aria-label="إنقاص الكمية" onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={qty <= 1}>
+              −
+            </button>
+            <input
+              id="quantity"
+              name="quantity"
+              inputMode="numeric"
+              value={qty}
+              onChange={(e) => {
+                const n = parseInt(e.target.value.replace(/\D/g, ""), 10);
+                setQty(Number.isFinite(n) ? Math.min(Math.max(n, 1), p.maxPerOrder) : 1);
+              }}
+              {...a11y("quantity")}
+            />
+            <button
+              type="button"
+              aria-label="زيادة الكمية"
+              onClick={() => setQty((q) => Math.min(p.maxPerOrder, q + 1))}
+              disabled={qty >= p.maxPerOrder}
+            >
+              +
+            </button>
+          </div>
+          {err("quantity")}
         </div>
-        {err("quantity")}
-      </div>
+      )}
 
       <fieldset className="field">
         <legend>منطقة التوصيل</legend>
@@ -346,12 +451,12 @@ export function OrderForm(p: Props) {
 
       <div className="summary" aria-live="polite">
         <div>
-          <span>السعر × {qty}</span>
+          <span>{offer ? offer.title : `السعر × ${qty}`}</span>
           <span>{money(subtotal, p.currency)}</span>
         </div>
         <div>
           <span>التوصيل</span>
-          <span>{!zone ? "اختر المنطقة" : fee === 0 ? (zoneFeeCents === 0 ? "مجاني" : "مجاني لهذا الطلب") : money(fee, p.currency)}</span>
+          <span>{offer?.includesDelivery ? "مشمول في العرض" : !zone ? "اختر المنطقة" : fee === 0 ? (zoneFeeCents === 0 ? "مجاني" : "مجاني لهذا الطلب") : money(fee, p.currency)}</span>
         </div>
         <div className="summary-total">
           <span>الإجمالي عند الاستلام</span>

@@ -1,19 +1,21 @@
 import { randomUUID } from "node:crypto";
-import { getProduct, getSettings } from "@/lib/db";
-import { DEFAULT_PRODUCT, DEFAULT_SETTINGS, DELIVERY_ZONES, formatMoney, orderingOpen, toCents, zoneFee } from "@/lib/content";
+import { getOffers, getProduct, getSettings } from "@/lib/db";
+import { DEFAULT_PRODUCT, DEFAULT_SETTINGS, DELIVERY_ZONES, formatMoney, liveOffers, offerEndMs, type Offer, orderingOpen, toCents, zoneFee } from "@/lib/content";
 import { ProductPicture } from "./ProductPicture";
 import { OrderForm } from "./OrderForm";
 import { ColorShowcase, RevealController, StickyOrder } from "./client";
 import { ProductStage } from "./stage/ProductStage";
 import { DiscRing, Spotlight } from "./showcase";
-import { CallIcon, CashIcon, CheckIcon, PhoneIcon, TruckIcon } from "./icons";
+import { OffersSection, type OfferView } from "./offers";
+import { CallIcon, CashIcon, CheckIcon, PhoneIcon, TruckIcon, WhatsAppIcon } from "./icons";
 
 export default async function Home() {
   let product = DEFAULT_PRODUCT;
   let settings = DEFAULT_SETTINGS;
+  let offers: Offer[] = [];
   let dbError = false;
   try {
-    [product, settings] = await Promise.all([getProduct(), getSettings()]);
+    [product, settings, offers] = await Promise.all([getProduct(), getSettings(), getOffers()]);
   } catch (err) {
     console.error("storefront: could not load content:", (err as Error)?.message ?? err);
     dbError = true;
@@ -34,8 +36,23 @@ export default async function Home() {
       (settings.freeDeliveryFrom > 0
         ? `. مجاني للطلبات من ${formatMoney(toCents(settings.freeDeliveryFrom), settings.currencyCode)}`
         : "");
+  const cheapestFee = Math.min(...zones.map((z) => z.feeCents));
+  const offerViews: OfferView[] = open
+    ? liveOffers(offers).map((o) => ({
+        id: o.id,
+        title: o.title,
+        quantity: o.quantity,
+        priceCents: toCents(o.price),
+        includesDelivery: o.includesDelivery,
+        badge: o.badge,
+        theme: o.theme,
+        endsAt: o.endsAt ? offerEndMs(o.endsAt) : 0,
+        normalCents: toCents(product.price) * o.quantity + (o.includesDelivery ? cheapestFee : 0),
+      }))
+    : [];
   const phone = settings.supportPhone.trim();
   const whatsapp = settings.whatsappNumber.replace(/[^\d]/g, "");
+  const waLink = settings.showWhatsappButton && whatsapp.length >= 8 ? `https://wa.me/${whatsapp}?text=${encodeURIComponent(`مرحباً ${settings.storeName}، عندي سؤال`)}` : "";
   const accent = /^#[0-9a-fA-F]{6}$/.test(settings.accentColor) ? settings.accentColor : DEFAULT_SETTINGS.accentColor;
   const colorPhotoAlt: Record<string, string> = {
     black: `${product.name} باللون الأسود مع الأقراص والملحقات`,
@@ -63,6 +80,11 @@ export default async function Home() {
             <a className="topbar-phone" href={`tel:${phone}`}>
               <PhoneIcon />
               <span dir="ltr">{phone}</span>
+            </a>
+          )}
+          {waLink && (
+            <a className="topbar-wa" href={waLink} target="_blank" rel="noopener noreferrer" aria-label="راسلنا على واتساب">
+              <WhatsAppIcon />
             </a>
           )}
           <a className="btn btn-small btn-primary" href="#order">
@@ -136,6 +158,8 @@ export default async function Home() {
             </ul>
           </section>
         )}
+
+        <OffersSection offers={offerViews} currency={settings.currencyCode} />
 
         <Spotlight src="/product/cut-black.webp" alt={`${product.name} باللون الأسود من قريب`} />
 
@@ -290,6 +314,7 @@ export default async function Home() {
                 colors={product.colors}
                 supportPhone={phone}
                 deliveryEstimate={settings.deliveryEstimate}
+                offers={offerViews}
               />
             )}
           </div>
@@ -311,6 +336,14 @@ export default async function Home() {
           </a>
         </p>
       </footer>
+
+      {waLink && (
+        <a className="wa-float" href={waLink} target="_blank" rel="noopener noreferrer" aria-label="راسلنا على واتساب">
+          <span className="wa-float-ring" aria-hidden />
+          <WhatsAppIcon />
+          <span className="wa-float-text">راسلنا</span>
+        </a>
+      )}
 
       <StickyOrder price={price || "اطلب الآن"} open={open} />
     </div>

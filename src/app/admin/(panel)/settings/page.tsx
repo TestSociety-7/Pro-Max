@@ -45,6 +45,18 @@ export default async function SettingsPage() {
             <Field name="whatsappNumber" label="رقم واتساب (تصله الطلبات)" hint="بعد كل طلب يُفتح واتساب العميل برسالة فيها كل تفاصيل الطلب إلى هذا الرقم. اكتبه دولياً، مثال: 972599123456+">
               <input {...f("whatsappNumber")} type="tel" defaultValue={s.whatsappNumber} dir="ltr" />
             </Field>
+            <div className="a-field toggles">
+              <label className="switch">
+                <input type="checkbox" name="showWhatsappButton" defaultChecked={s.showWhatsappButton} />
+                <span aria-hidden />
+                زر واتساب العائم في المتجر (للتواصل في أي وقت)
+              </label>
+              <label className="switch">
+                <input type="checkbox" name="whatsappCheckout" defaultChecked={s.whatsappCheckout} />
+                <span aria-hidden />
+                بعد الطلب افتح واتساب برسالة الطلب إليّ
+              </label>
+            </div>
             <Field name="supportHours" label="ساعات الدعم">
               <input {...f("supportHours")} defaultValue={s.supportHours} dir="auto" placeholder="مثال: يومياً من 10 صباحاً حتى 10 مساءً" />
             </Field>

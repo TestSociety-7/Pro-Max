@@ -22,11 +22,13 @@ import {
   getSettings,
   recordLoginFailure,
   saveProduct,
+  saveOffers,
   saveSettings,
   tooManyLoginFailures,
   updateOrderStatus,
 } from "@/lib/db";
 import {
+  cleanOffers,
   isStatus,
   isValidCurrency,
   type Availability,
@@ -201,6 +203,8 @@ export async function updateSettings(_prev: FormState, fd: FormData): Promise<Fo
     returnsPolicy: s(fd, "returnsPolicy", 1500),
     announcement: s(fd, "announcement", 160),
     accentColor: accent || current.accentColor,
+    showWhatsappButton: fd.get("showWhatsappButton") === "on",
+    whatsappCheckout: fd.get("whatsappCheckout") === "on",
   };
   if (Object.keys(errors).length) return { message: "صحّح الحقول المحددة باللون الأحمر.", errors };
 
@@ -261,4 +265,24 @@ export async function checkNewOrders(afterId: number): Promise<{ latest: number;
       summary: `${o.quantity} × ${o.color} · ${formatMoney(o.totalCents, o.currency)}`,
     })),
   };
+}
+
+export async function updateOffers(_prev: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(s(fd, "offers", 20000) || "[]");
+  } catch {
+    return { ok: false, message: "تعذّر قراءة العروض. حدّث الصفحة وحاول مرة أخرى." };
+  }
+  const offers = cleanOffers(parsed);
+  const bad = offers.findIndex((o) => o.active && (!o.title || o.price <= 0));
+  if (bad >= 0) return { ok: false, message: `العرض رقم ${bad + 1}: اكتب اسم العرض وسعره قبل تفعيله.` };
+  try {
+    await saveOffers(offers);
+  } catch {
+    return { ok: false, message: "تعذّر الحفظ الآن. حاول مرة أخرى بعد قليل." };
+  }
+  revalidatePath("/", "layout");
+  return { ok: true, message: offers.some((o) => o.active) ? "تم حفظ العروض وهي تظهر الآن في المتجر." : "تم الحفظ. لا يوجد عرض مفعّل حالياً." };
 }

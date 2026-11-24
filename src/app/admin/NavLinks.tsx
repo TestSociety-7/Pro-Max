@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { IcBox, IcGear, IcOrders, IcStore } from "./icons";
+import { IcBox, IcGear, IcGift, IcOrders, IcStore } from "./icons";
 
 const LINKS = [
   { href: "/admin", label: "الطلبات", Icon: IcOrders, match: (p: string) => p === "/admin" || p.startsWith("/admin/orders") },
   { href: "/admin/product", label: "المنتج", Icon: IcBox, match: (p: string) => p.startsWith("/admin/product") },
+  { href: "/admin/offers", label: "العروض", Icon: IcGift, match: (p: string) => p.startsWith("/admin/offers") },
   { href: "/admin/settings", label: "الإعدادات", Icon: IcGear, match: (p: string) => p.startsWith("/admin/settings") },
 ];
 

@@ -20,6 +20,8 @@ export type StoreSettings = {
   returnsPolicy: string;
   announcement: string;
   accentColor: string; // hex
+  showWhatsappButton: boolean; // floating WhatsApp contact button on the store
+  whatsappCheckout: boolean; // after an order, open WhatsApp with the order message
 };
 
 export type Availability = "in_stock" | "sold_out";
@@ -64,6 +66,8 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   returnsPolicy: "",
   announcement: "",
   accentColor: "#f26722",
+  showWhatsappButton: true,
+  whatsappCheckout: true,
 };
 
 export const DEFAULT_PRODUCT: ProductContent = {
@@ -197,4 +201,73 @@ export function orderingOpen(p: ProductContent, s: StoreSettings): boolean {
     isValidCurrency(s.currencyCode) &&
     p.colors.some((c) => c.available)
   );
+}
+
+/* ---------------------------- offers / bundles ---------------------------- */
+
+export type Offer = {
+  id: string;
+  title: string; // e.g. "عرض القطعتين"
+  quantity: number; // devices in the bundle
+  price: number; // major units, the whole bundle
+  includesDelivery: boolean; // true = no delivery fee on top
+  badge: string; // short ribbon text, e.g. "الأكثر طلباً"
+  active: boolean;
+  theme: "standard" | "blackfriday";
+  endsAt: string; // "" or YYYY-MM-DD: shows a countdown and hides the offer after that day
+};
+
+export const MAX_OFFERS = 6;
+
+export const DEFAULT_OFFERS: Offer[] = [
+  { id: "duo", title: "عرض القطعتين", quantity: 2, price: 270, includesDelivery: true, badge: "عرض خاص", active: true, theme: "standard", endsAt: "" },
+  {
+    id: "black-friday",
+    title: "عرض الجمعة السوداء",
+    quantity: 2,
+    price: 250,
+    includesDelivery: true,
+    badge: "Black Friday",
+    active: false,
+    theme: "blackfriday",
+    endsAt: "2026-11-30",
+  },
+];
+
+/** Clean whatever is stored (or posted) into a safe list of offers. */
+export function cleanOffers(raw: unknown): Offer[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: Offer[] = [];
+  for (const r of raw.slice(0, MAX_OFFERS)) {
+    if (!r || typeof r !== "object") continue;
+    const o = r as Record<string, unknown>;
+    let id = typeof o.id === "string" && /^[a-z0-9-]{1,24}$/.test(o.id) ? o.id : "";
+    if (!id || seen.has(id)) id = `o${Date.now().toString(36)}${out.length}`;
+    seen.add(id);
+    const quantity = Math.round(Number(o.quantity));
+    const price = Math.round(Number(o.price) * 100) / 100;
+    out.push({
+      id,
+      title: String(o.title ?? "").trim().slice(0, 60),
+      quantity: Number.isFinite(quantity) ? Math.min(Math.max(quantity, 1), 10) : 1,
+      price: Number.isFinite(price) && price > 0 ? Math.min(price, 1_000_000) : 0,
+      includesDelivery: o.includesDelivery === true,
+      badge: String(o.badge ?? "").trim().slice(0, 30),
+      active: o.active === true,
+      theme: o.theme === "blackfriday" ? "blackfriday" : "standard",
+      endsAt: typeof o.endsAt === "string" && /^\d{4}-\d{2}-\d{2}$/.test(o.endsAt) ? o.endsAt : "",
+    });
+  }
+  return out;
+}
+
+/** Offers a customer can actually pick. */
+export function liveOffers(offers: Offer[], now = Date.now()): Offer[] {
+  return offers.filter((o) => o.active && o.price > 0 && o.title && (!o.endsAt || now < offerEndMs(o.endsAt)));
+}
+
+/** End of the offer's last day, Palestine/Israel time (UTC+2/+3; +2 keeps it inclusive). */
+export function offerEndMs(endsAt: string): number {
+  return Date.parse(`${endsAt}T23:59:59+02:00`);
 }

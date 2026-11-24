@@ -7,6 +7,9 @@ import {
   type ProductContent,
   type StoreSettings,
   withDefaults,
+  cleanOffers,
+  DEFAULT_OFFERS,
+  type Offer,
 } from "./content";
 
 // Storage adapter. Works with either:
@@ -209,6 +212,13 @@ export async function getSettings(): Promise<StoreSettings> {
 }
 export async function saveSettings(s: StoreSettings) {
   await writeContent("settings", s);
+}
+export async function getOffers(): Promise<Offer[]> {
+  const stored = await readContent("offers");
+  return stored === null ? structuredClone(DEFAULT_OFFERS) : cleanOffers(stored);
+}
+export async function saveOffers(offers: Offer[]) {
+  await writeContent("offers", cleanOffers(offers));
 }
 export async function getProduct(): Promise<ProductContent> {
   return withDefaults(DEFAULT_PRODUCT, await readContent("product"));
