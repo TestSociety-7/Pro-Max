@@ -9,7 +9,8 @@ import { redirect } from "next/navigation";
 
 // "__Host-" cookies can only be set over HTTPS, for this exact host, on path "/".
 const COOKIE = process.env.NODE_ENV === "production" ? "__Host-pm_admin" : "pm_admin";
-const SESSION_HOURS = 12;
+// The owner asked to stay signed in; sessions still end on logout or "sign out of all devices".
+const SESSION_HOURS = 24 * 180;
 
 export class AuthConfigError extends Error {}
 

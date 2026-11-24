@@ -110,7 +110,7 @@ export default async function SettingsPage() {
       <section className="card danger-card security-card">
         <h2>الأمان</h2>
         <p>
-          لوحة التحكم محمية بكلمة مرور مشفّرة، وجلسة تنتهي تلقائياً بعد 12 ساعة، وقفل بعد المحاولات الخاطئة المتكررة.
+          لوحة التحكم محمية بكلمة مرور مشفّرة، وتبقى مسجّلاً على أجهزتك حتى تسجّل الخروج، مع قفل بعد المحاولات الخاطئة المتكررة.
         </p>
         <p className="muted">الأجهزة المسجّلة الآن: {sessions}</p>
         <form action={logoutEverywhere}>
