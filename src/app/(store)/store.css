@@ -2267,3 +2267,9 @@ h2 {
 
 /* never scroll sideways (phones and the installed app) */
 html, body.store { overflow-x: clip; max-width: 100%; }
+
+/* ---- simpler checkout: two fields per row on wider screens, big tap targets ---- */
+.field-row { display: grid; gap: 0 14px; }
+@media (min-width: 520px) { .field-row { grid-template-columns: 1fr 1fr; } }
+.order-form input:not([type="radio"]):not([type="checkbox"]):not([type="hidden"]) { min-height: 52px; font-size: 16px; }
+.order-form .btn-block[type="submit"] { min-height: 58px; font-size: 1.08rem; }

@@ -215,6 +215,7 @@ export async function updateSettings(_prev: FormState, fd: FormData): Promise<Fo
     accentColor: accent || current.accentColor,
     showWhatsappButton: fd.get("showWhatsappButton") === "on",
     whatsappCheckout: fd.get("whatsappCheckout") === "on",
+    westBankEnabled: fd.get("westBankEnabled") === "on",
   };
   if (Object.keys(errors).length) return { message: "صحّح الحقول المحددة باللون الأحمر.", errors };
 

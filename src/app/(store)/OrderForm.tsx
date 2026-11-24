@@ -39,14 +39,15 @@ function money(cents: number, currency: string) {
   }
 }
 
-const FIELD_ORDER: (keyof OrderInput)[] = ["color", "quantity", "zone", "name", "phone", "address", "area", "note"];
+const FIELD_ORDER: (keyof OrderInput)[] = ["color", "quantity", "zone", "name", "phone", "area", "address", "note"];
 
 export function OrderForm(p: Props) {
   const [state, action, pending] = useActionState<OrderState, FormData>(placeOrder, { status: "idle" });
   const available = p.colors.filter((c) => c.available);
   const [color, setColor] = useSelectedColor(available[0]?.key ?? "");
   const [qty, setQty] = useState(1);
-  const [zone, setZone] = useState("");
+  // with a single delivery area there is nothing to choose
+  const [zone, setZone] = useState(p.zones.length === 1 ? p.zones[0].key : "");
   // when an offer is active it is the only choice, picked for the customer
   const [offerId, setOfferId] = useState(p.offers[0]?.id ?? "");
   const [unitColors, setUnitColors] = useState<string[]>([]);
@@ -370,85 +371,94 @@ export function OrderForm(p: Props) {
         </div>
       )}
 
-      <fieldset className="field">
-        <legend>منطقة التوصيل</legend>
-        <div className="zone-options">
-          {p.zones.map((z) => (
-            <label key={z.key} className="zone-option">
-              <input
-                type="radio"
-                name="zone"
-                value={z.key}
-                checked={zone === z.key}
-                onChange={() => {
-                  setZone(z.key);
-                  if (touched && formRef.current) setClientErrors(validateOrder({ ...readForm(formRef.current), zone: z.key }, opts));
-                }}
-                {...a11y("zone")}
-              />
-              <span className="zone-name">{z.label}</span>
-              <span className="zone-fee">{z.feeCents ? money(z.feeCents, p.currency) : "توصيل مجاني"}</span>
-            </label>
-          ))}
+      {p.zones.length === 1 ? (
+        <input type="hidden" name="zone" value={p.zones[0].key} />
+      ) : (
+        <fieldset className="field">
+          <legend>منطقة التوصيل</legend>
+          <div className="zone-options">
+            {p.zones.map((z) => (
+              <label key={z.key} className="zone-option">
+                <input
+                  type="radio"
+                  name="zone"
+                  value={z.key}
+                  checked={zone === z.key}
+                  onChange={() => {
+                    setZone(z.key);
+                    if (touched && formRef.current) setClientErrors(validateOrder({ ...readForm(formRef.current), zone: z.key }, opts));
+                  }}
+                  {...a11y("zone")}
+                />
+                <span className="zone-name">{z.label}</span>
+                <span className="zone-fee">{z.feeCents ? money(z.feeCents, p.currency) : "توصيل مجاني"}</span>
+              </label>
+            ))}
+          </div>
+          {err("zone")}
+        </fieldset>
+      )}
+
+      <div className="field-row">
+        <div className="field">
+          <label htmlFor="name">الاسم</label>
+          <input id="name" name="name" autoComplete="name" defaultValue={values.name} onBlur={onBlurValidate} maxLength={80} enterKeyHint="next" {...a11y("name")} />
+          {err("name")}
         </div>
-        {err("zone")}
-      </fieldset>
 
-      <div className="field">
-        <label htmlFor="name">الاسم الكامل</label>
-        <input id="name" name="name" autoComplete="name" defaultValue={values.name} onBlur={onBlurValidate} maxLength={80} {...a11y("name")} />
-        {err("name")}
+        <div className="field">
+          <label htmlFor="phone">الهاتف</label>
+          <input
+            id="phone"
+            name="phone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            dir="ltr"
+            placeholder="05X XXX XXXX"
+            defaultValue={values.phone}
+            onBlur={onBlurValidate}
+            maxLength={24}
+            enterKeyHint="next"
+            {...a11y("phone")}
+          />
+          {err("phone")}
+        </div>
       </div>
 
-      <div className="field">
-        <label htmlFor="phone">رقم الهاتف</label>
-        <input
-          id="phone"
-          name="phone"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          dir="ltr"
-          defaultValue={values.phone}
-          onBlur={onBlurValidate}
-          maxLength={24}
-          {...a11y("phone")}
-        />
-        <p className="hint">سنتصل بك على هذا الرقم لتأكيد الطلب.</p>
-        {err("phone")}
-      </div>
+      <div className="field-row">
+        <div className="field">
+          <label htmlFor="area">المدينة / البلدة</label>
+          <input
+            id="area"
+            name="area"
+            autoComplete="address-level2"
+            defaultValue={values.area}
+            onBlur={onBlurValidate}
+            maxLength={80}
+            enterKeyHint="next"
+            {...a11y("area")}
+          />
+          {err("area")}
+        </div>
 
-      <div className="field">
-        <label htmlFor="address">عنوان التوصيل</label>
-        <textarea
-          id="address"
-          name="address"
-          rows={2}
-          autoComplete="street-address"
-          defaultValue={values.address}
-          onBlur={onBlurValidate}
-          maxLength={300}
-          placeholder="المدينة، الحي، الشارع، رقم المبنى"
-          {...a11y("address")}
-        />
-        {err("address")}
+        <div className="field">
+          <label htmlFor="address">العنوان</label>
+          <input
+            id="address"
+            name="address"
+            autoComplete="street-address"
+            defaultValue={values.address}
+            onBlur={onBlurValidate}
+            maxLength={300}
+            placeholder="الحي أو الشارع"
+            enterKeyHint="done"
+            {...a11y("address")}
+          />
+          {err("address")}
+        </div>
       </div>
-
-      <div className="field">
-        <label htmlFor="area">
-          المدينة / البلدة <span className="optional">(اختياري)</span>
-        </label>
-        <input id="area" name="area" autoComplete="address-level2" defaultValue={values.area} maxLength={80} {...a11y("area")} />
-        {err("area")}
-      </div>
-
-      <div className="field">
-        <label htmlFor="note">
-          ملاحظة للتوصيل <span className="optional">(اختياري)</span>
-        </label>
-        <input id="note" name="note" defaultValue={values.note} maxLength={300} placeholder="مثال: أفضل وقت للاتصال" {...a11y("note")} />
-        {err("note")}
-      </div>
+      <input type="hidden" name="note" value="" />
 
       <div className="summary" aria-live="polite">
         <div>

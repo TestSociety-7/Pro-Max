@@ -76,6 +76,13 @@ export default async function SettingsPage() {
             <Field name="deliveryFeeWestBank" label="التوصيل للضفة (₪)" hint="0 = توصيل مجاني.">
               <input {...f("deliveryFeeWestBank")} inputMode="decimal" defaultValue={s.deliveryFeeWestBank || ""} placeholder="0" />
             </Field>
+            <div className="a-field toggles">
+              <label className="switch">
+                <input type="checkbox" name="westBankEnabled" defaultChecked={s.westBankEnabled} />
+                <span aria-hidden />
+                إظهار خيار التوصيل للضفة في نموذج الطلب (عند الإيقاف كل الطلبات للداخل)
+              </label>
+            </div>
             <Field name="freeDeliveryFrom" label="توصيل مجاني ابتداءً من (اختياري)" hint="قيمة الطلب. اتركه فارغاً لإلغائه.">
               <input {...f("freeDeliveryFrom")} inputMode="decimal" defaultValue={s.freeDeliveryFrom || ""} />
             </Field>

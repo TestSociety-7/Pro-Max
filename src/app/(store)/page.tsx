@@ -28,7 +28,7 @@ export default async function Home() {
     priceSet && product.compareAtPrice > product.price
       ? formatMoney(toCents(product.compareAtPrice), settings.currencyCode)
       : "";
-  const zones = DELIVERY_ZONES.map((z) => ({ key: z.key, label: z.label, feeCents: zoneFee(settings, z.key) }));
+  const zones = DELIVERY_ZONES.filter((z) => z.key === "inside" || settings.westBankEnabled).map((z) => ({ key: z.key, label: z.label, feeCents: zoneFee(settings, z.key) }));
   const feeText = !settings.currencyCode
     ? ""
     : "رسوم التوصيل: " +

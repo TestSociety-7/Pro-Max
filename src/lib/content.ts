@@ -22,6 +22,7 @@ export type StoreSettings = {
   accentColor: string; // hex
   showWhatsappButton: boolean; // floating WhatsApp contact button on the store
   whatsappCheckout: boolean; // after an order, open WhatsApp with the order message
+  westBankEnabled: boolean; // show the الضفة delivery choice at checkout
 };
 
 export type Availability = "in_stock" | "sold_out";
@@ -68,6 +69,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   accentColor: "#f26722",
   showWhatsappButton: true,
   whatsappCheckout: true,
+  westBankEnabled: true,
 };
 
 export const DEFAULT_PRODUCT: ProductContent = {

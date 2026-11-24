@@ -46,10 +46,12 @@ export function validateOrder(
   else if (digits.length < 8 || digits.length > 15) e.phone = "رقم الهاتف غير صحيح. تأكد من الأرقام.";
 
   const address = input.address.trim();
-  if (address.length < 6) e.address = "من فضلك اكتب عنوان التوصيل بالتفصيل.";
+  if (address.length < 2) e.address = "اكتب العنوان (الحي أو الشارع).";
   else if (address.length > 300) e.address = "العنوان طويل جداً.";
 
-  if (input.area.trim().length > 80) e.area = "اسم المنطقة طويل جداً.";
+  const area = input.area.trim();
+  if (area.length < 2) e.area = "اكتب المدينة أو البلدة.";
+  else if (area.length > 80) e.area = "اسم المدينة طويل جداً.";
   if (input.note.trim().length > 300) e.note = "الملاحظة طويلة جداً.";
 
   if (!opts.colors.includes(input.color)) e.color = "اختر اللون.";

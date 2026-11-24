@@ -115,7 +115,7 @@ export async function placeOrder(_prev: OrderState, fd: FormData): Promise<Order
     return { status: "error", message: "طلبات كثيرة خلال وقت قصير. حاول بعد دقائق أو اتصل بنا.", values };
   }
 
-  const zone = isZone(input.zone) ? input.zone : "inside";
+  const zone = settings.westBankEnabled && isZone(input.zone) ? input.zone : "inside";
   const zoneLabel = DELIVERY_ZONES.find((z) => z.key === zone)!.label;
   const label = (k: string) => availableColors.find((c) => c.key === k)!.label;
   let unit: number, subtotal: number, fee: number, colorLabel: string;
@@ -172,37 +172,16 @@ export async function placeOrder(_prev: OrderState, fd: FormData): Promise<Order
       color: order.color,
       name: order.customerName,
       phone: order.phone,
+      // Short format the owner asked for, e.g. "ماكنه سلطه بيج" then name / phone / town / address.
       whatsappUrl: !settings.whatsappCheckout ? "" : whatsappOrderLink(settings.whatsappNumber, [
-        `🛒 *طلب جديد | ${settings.storeName}*`,
-        "━━━━━━━━━━━━━━",
-        `🧾 رقم الطلب: *${order.ref}*`,
-        `🕒 ${new Intl.DateTimeFormat("ar-u-nu-latn", { dateStyle: "full", timeStyle: "short", timeZone: "Asia/Jerusalem" }).format(new Date(order.createdAt))}`,
-        "",
-        "👤 *بيانات الزبون*",
-        `▫️ الاسم: ${order.customerName}`,
-        `▫️ الهاتف: ${order.phone}`,
-        "",
-        "📦 *الطلب*",
-        `▫️ المنتج: ${product.name}`,
-        offer ? `▫️ العرض: *${offer.title}*${offer.includesDelivery ? " (شامل التوصيل)" : ""}` : null,
-        `▫️ الكمية: ${order.quantity}`,
-        `▫️ اللون: ${order.color}`,
-        "",
-        "📍 *التوصيل*",
-        `▫️ المنطقة: ${zoneLabel}`,
-        input.area.trim() ? `▫️ المدينة / البلدة: ${input.area.trim()}` : null,
-        `▫️ العنوان: ${order.address}`,
-        order.note ? `▫️ ملاحظة: ${order.note}` : null,
-        "",
-        "💰 *الحساب*",
-        offer
-          ? `▫️ سعر العرض: ${formatMoney(order.totalCents - order.deliveryFeeCents, order.currency)}`
-          : `▫️ السعر: ${formatMoney(order.unitPriceCents, order.currency)} × ${order.quantity} = ${formatMoney(order.unitPriceCents * order.quantity, order.currency)}`,
-        `▫️ التوصيل: ${offer?.includesDelivery ? "مشمول في العرض" : order.deliveryFeeCents ? formatMoney(order.deliveryFeeCents, order.currency) : "مجاني"}`,
-        "━━━━━━━━━━━━━━",
-        `💵 *المبلغ عند الاستلام: ${formatMoney(order.totalCents, order.currency)}*`,
-        "",
-        "الدفع نقداً عند الاستلام. أرجو تأكيد الطلب، شكراً 🙏",
+        `ماكنه سلطه ${order.color}`,
+        `👤 الاسم: ${order.customerName}`,
+        `📞 الهاتف: ${order.phone}`,
+        settings.westBankEnabled ? `🚚 التوصيل: ${zoneLabel}` : null,
+        `🏙️ المدينة / البلدة: ${input.area.trim()}`,
+        `📍 العنوان: ${order.address}`,
+        order.note ? `📝 ملاحظة: ${order.note}` : null,
+        offer ? `🎁 ${offer.title} · ${formatMoney(order.totalCents, order.currency)}` : null,
       ]),
     };
   } catch (err) {
