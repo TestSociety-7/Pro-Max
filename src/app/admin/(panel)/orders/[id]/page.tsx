@@ -18,6 +18,8 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const o = await getOrder(n);
   if (!o) notFound();
   const m = (c: number) => formatMoney(c, o.currency);
+  // bundles are saved as "product · offer title"
+  const isOffer = o.productName.includes(" · ");
   const wa = o.phone.replace(/[^\d]/g, "");
   const step = ORDER_STATUSES.indexOf(o.status);
 
@@ -86,10 +88,19 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             <dd dir="auto">{o.color}</dd>
             <dt>الكمية</dt>
             <dd>{o.quantity}</dd>
-            <dt>سعر القطعة</dt>
-            <dd>{m(o.unitPriceCents)}</dd>
+            {isOffer ? (
+              <>
+                <dt>سعر العرض</dt>
+                <dd>{m(o.totalCents - o.deliveryFeeCents)}</dd>
+              </>
+            ) : (
+              <>
+                <dt>سعر القطعة</dt>
+                <dd>{m(o.unitPriceCents)}</dd>
+              </>
+            )}
             <dt>التوصيل</dt>
-            <dd>{o.deliveryFeeCents ? m(o.deliveryFeeCents) : "مجاني"}</dd>
+            <dd>{o.deliveryFeeCents ? m(o.deliveryFeeCents) : isOffer ? "مشمول في العرض" : "مجاني"}</dd>
             <dt>الدفع</dt>
             <dd>نقداً عند الاستلام</dd>
           </dl>

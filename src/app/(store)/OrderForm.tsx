@@ -47,7 +47,8 @@ export function OrderForm(p: Props) {
   const [color, setColor] = useSelectedColor(available[0]?.key ?? "");
   const [qty, setQty] = useState(1);
   const [zone, setZone] = useState("");
-  const [offerId, setOfferId] = useState("");
+  // when an offer is active it is the only choice, picked for the customer
+  const [offerId, setOfferId] = useState(p.offers[0]?.id ?? "");
   const [unitColors, setUnitColors] = useState<string[]>([]);
   const offer = p.offers.find((o) => o.id === offerId);
   const packRef = useRef<HTMLFieldSetElement>(null);
@@ -260,17 +261,8 @@ export function OrderForm(p: Props) {
 
       {p.offers.length > 0 && (
         <fieldset className="field" ref={packRef}>
-          <legend>اختر الباقة</legend>
+          <legend>{p.offers.length > 1 ? "اختر العرض" : "العرض"}</legend>
           <div className="pack-options">
-            <label className="pack-option">
-              <input type="radio" name="pack" value="" checked={!offer} onChange={() => setOfferId("")} />
-              <span className="pack-dot" aria-hidden />
-              <span className="pack-name">
-                قطعة واحدة أو أكثر
-                <small>السعر العادي + التوصيل</small>
-              </span>
-              <span className="pack-price">{money(p.unitCents, p.currency)}</span>
-            </label>
             {p.offers.map((o) => (
               <label key={o.id} className="pack-option">
                 {o.badge && <span className="pack-tag">{o.badge}</span>}

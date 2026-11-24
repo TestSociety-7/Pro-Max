@@ -84,8 +84,10 @@ export async function placeOrder(_prev: OrderState, fd: FormData): Promise<Order
   }
 
   const availableColors = product.colors.filter((c) => c.available);
-  const offerId = str(fd, "offer");
-  const offer = offerId ? liveOffers(offers).find((o) => o.id === offerId) : undefined;
+  // An active offer always applies: the one the customer picked, or the first one.
+  const live = liveOffers(offers);
+  const offerId = str(fd, "offer") || live[0]?.id || "";
+  const offer = offerId ? live.find((o) => o.id === offerId) : undefined;
   if (offerId && !offer) {
     return { status: "error", message: "هذا العرض لم يعد متاحاً. اختر من جديد.", values };
   }
