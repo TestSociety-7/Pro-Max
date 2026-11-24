@@ -115,10 +115,18 @@ function Countdown({ to }: { to: number }) {
 
 function OfferCard({ o, currency, featured }: { o: OfferView; currency: string; featured: boolean }) {
   const ref = useTilt<HTMLElement>();
-  const shown = Math.min(o.quantity, 3);
+  // always show both colors, even for a one-device offer
+  const shown = Math.min(Math.max(o.quantity, 2), 3);
   const saving = o.normalCents - o.priceCents;
   return (
-    <article ref={ref} className={`offer3d${featured ? " featured" : ""}${o.theme === "blackfriday" ? " bf" : ""}`} data-reveal>
+    <article
+      ref={ref}
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest("a")) return;
+        chooseOffer(o.id);
+        document.getElementById("order")?.scrollIntoView({ behavior: "smooth" });
+      }}
+      className={`offer3d${featured ? " featured" : ""}${o.theme === "blackfriday" ? " bf" : ""}`} data-reveal>
       <div className="offer3d-inner">
         <span className="offer3d-glow" aria-hidden />
         {o.badge && <span className="offer3d-ribbon">{o.badge}</span>}

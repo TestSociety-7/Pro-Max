@@ -20,12 +20,11 @@ export async function generateMetadata(): Promise<Metadata> {
       title,
       description,
       openGraph: { title, description, images: ["/og.jpg"], locale: "ar" },
-      manifest: "/manifest.webmanifest",
       icons: ICON_METADATA,
       appleWebApp: { capable: true, title: s.storeName, statusBarStyle: "black-translucent" },
     };
   } catch {
-    return { title: "Pro Max", manifest: "/manifest.webmanifest", icons: ICON_METADATA };
+    return { title: "Pro Max", icons: ICON_METADATA };
   }
 }
 
@@ -39,6 +38,9 @@ export const viewport: Viewport = {
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ar" dir="rtl">
+      <head>
+        <link rel="manifest" href="/manifest.webmanifest" crossOrigin="use-credentials" />
+      </head>
       <body className="store">
         {children}
         <Presence />

@@ -8,7 +8,6 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "لوحة التحكم | Pro Max",
   robots: { index: false, follow: false },
-  manifest: "/admin/manifest.webmanifest",
   icons: ICON_METADATA,
   appleWebApp: { capable: true, title: "PM Admin", statusBarStyle: "black-translucent" },
 };
@@ -23,6 +22,9 @@ export const viewport: Viewport = {
 export default function AdminRootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ar" dir="rtl">
+      <head>
+        <link rel="manifest" href="/admin/manifest.webmanifest" crossOrigin="use-credentials" />
+      </head>
       <body className="admin">{children}</body>
     </html>
   );

@@ -510,14 +510,16 @@ svg {
 }
 .tabbar-links {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 .tabbar .nav-link {
   flex-direction: column;
   gap: 3px;
+  min-width: 0;
   min-height: 56px;
-  padding: 6px 4px;
-  font-size: 0.72rem;
+  padding: 6px 2px;
+  font-size: 0.7rem;
+  white-space: nowrap;
   justify-content: center;
 }
 .nav-link {
@@ -1899,7 +1901,18 @@ fieldset.card legend + * {
 .toggles { display: grid; gap: 12px; grid-column: 1 / -1; }
 .theme-pick { display: flex; gap: 8px; }
 .theme-pick label { flex: 1; display: grid; place-items: center; padding: 12px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--glass); cursor: pointer; font-weight: 700; transition: 0.2s var(--ease); }
-.theme-pick input { position: absolute; opacity: 0; pointer-events: none; }
+.theme-pick input { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
 .theme-pick label.bf { background: repeating-linear-gradient(135deg, rgba(255,255,255,0.03) 0 2px, transparent 2px 10px), #0a0808; letter-spacing: 0.06em; color: var(--accent-2); }
 .theme-pick label.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
 .theme-pick label:has(input:focus-visible) { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+
+.tabbar .nav-link span { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+@media (max-width: 360px) { .tabbar { inset-inline: 8px; } }
+.switch, .theme-pick label { position: relative; }
+.admin-form .switch input,
+.admin-form .theme-pick input { position: absolute; inset: 0; width: 1px !important; height: 1px !important; min-height: 0; padding: 0; margin: 0; border: 0; opacity: 0; }
+
+/* never scroll sideways (phones and the installed app) */
+html, body.admin { overflow-x: clip; max-width: 100%; }
+.panel, .panel-body, .panel-main { min-width: 0; max-width: 100%; }
+.admin-form input, .admin-form select, .admin-form textarea { max-width: 100%; min-width: 0; }

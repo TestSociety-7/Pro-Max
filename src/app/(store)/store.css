@@ -2162,15 +2162,26 @@ h2 {
 
 /* ---- WhatsApp contact, always reachable ---- */
 .topbar-wa {
-  display: inline-grid;
-  place-items: center;
-  width: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   height: 38px;
-  border-radius: 50%;
+  padding: 0 14px 0 12px;
+  border-radius: 999px;
   background: #25d366;
   color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  box-shadow: 0 8px 22px -10px rgba(37, 211, 102, 0.9);
+  transition: transform 0.25s var(--ease), filter 0.25s var(--ease);
 }
-.topbar-wa svg { width: 20px; height: 20px; }
+.topbar-wa:hover { transform: translateY(-1px); filter: brightness(1.06); }
+.topbar-wa svg { width: 19px; height: 19px; flex: none; }
+@media (max-width: 360px) {
+  .topbar-wa { width: 38px; padding: 0; justify-content: center; }
+  .topbar-wa span { display: none; }
+}
 .wa-float {
   position: fixed;
   z-index: 45;
@@ -2273,3 +2284,7 @@ h2 {
 .offer3d.bf .cd-cell { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
 .offer3d.bf .cd-cell b { color: #ffd2ad; }
 @media (prefers-reduced-motion: reduce) { .bf-title span { animation: none; } }
+.offer3d { cursor: pointer; }
+
+/* never scroll sideways (phones and the installed app) */
+html, body.store { overflow-x: clip; max-width: 100%; }

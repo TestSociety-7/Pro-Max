@@ -21,6 +21,8 @@ type Props = {
   supportPhone: string;
   deliveryEstimate: string;
   offers: OfferView[];
+  /** after saving, the customer is sent to WhatsApp with the order message */
+  whatsappCheckout: boolean;
 };
 
 function money(cents: number, currency: string) {
@@ -76,7 +78,8 @@ export function OrderForm(p: Props) {
   useEffect(() => {
     if (state.status === "success" && state.whatsappUrl) {
       // Hand the order to WhatsApp so the store gets it as a message too.
-      const t = setTimeout(() => window.location.assign(state.whatsappUrl), 1200);
+      // WhatsApp first: hand the order message over straight away
+      const t = setTimeout(() => window.location.assign(state.whatsappUrl), 150);
       return () => clearTimeout(t);
     }
   }, [state]);
@@ -474,8 +477,20 @@ export function OrderForm(p: Props) {
         </p>
       )}
 
-      <button type="submit" className="btn btn-primary btn-block" disabled={pending} aria-busy={pending}>
-        {pending ? "جارٍ إرسال الطلب…" : `تأكيد الطلب — ${money(total, p.currency)}`}
+      <button
+        type="submit"
+        className={`btn btn-block ${p.whatsappCheckout ? "btn-whatsapp" : "btn-primary"}`}
+        disabled={pending}
+        aria-busy={pending}
+      >
+        {p.whatsappCheckout && !pending && <WhatsAppIcon />}
+        {pending
+          ? p.whatsappCheckout
+            ? "جارٍ فتح واتساب…"
+            : "جارٍ إرسال الطلب…"
+          : p.whatsappCheckout
+            ? `أرسل الطلب على واتساب — ${money(total, p.currency)}`
+            : `تأكيد الطلب — ${money(total, p.currency)}`}
       </button>
     </form>
   );

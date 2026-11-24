@@ -85,6 +85,7 @@ export default async function Home() {
           {waLink && (
             <a className="topbar-wa" href={waLink} target="_blank" rel="noopener noreferrer" aria-label="راسلنا على واتساب">
               <WhatsAppIcon />
+              <span>واتساب</span>
             </a>
           )}
           <a className="btn btn-small btn-primary" href="#order">
@@ -315,6 +316,7 @@ export default async function Home() {
                 supportPhone={phone}
                 deliveryEstimate={settings.deliveryEstimate}
                 offers={offerViews}
+                whatsappCheckout={settings.whatsappCheckout && whatsapp.length >= 8}
               />
             )}
           </div>
@@ -337,13 +339,6 @@ export default async function Home() {
         </p>
       </footer>
 
-      {waLink && (
-        <a className="wa-float" href={waLink} target="_blank" rel="noopener noreferrer" aria-label="راسلنا على واتساب">
-          <span className="wa-float-ring" aria-hidden />
-          <WhatsAppIcon />
-          <span className="wa-float-text">راسلنا</span>
-        </a>
-      )}
 
       <StickyOrder price={price || "اطلب الآن"} open={open} />
     </div>
