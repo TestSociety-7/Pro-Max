@@ -2,8 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { after } from "next/server";
-import { headers } from "next/headers";
 import {
   authConfigProblem,
   clientKey,
@@ -90,16 +88,6 @@ export async function login(_prev: FormState, fd: FormData): Promise<FormState> 
   }
   await clearLoginFailures(key);
   await startSession();
-  const agent = (await headers()).get("user-agent") ?? "";
-  const device = /iPhone|iPad/.test(agent) ? "iPhone / iPad" : /Android/.test(agent) ? "Android" : /Mac/.test(agent) ? "Mac" : /Windows/.test(agent) ? "Windows" : "جهاز";
-  after(() =>
-    notifyAdmins({
-      title: "🔐 تسجيل دخول جديد إلى لوحة التحكم",
-      body: `${device} · ${new Intl.DateTimeFormat("ar-u-nu-latn", { timeStyle: "short", dateStyle: "medium", timeZone: "Asia/Jerusalem" }).format(new Date())}. إن لم تكن أنت، سجّل الخروج من كل الأجهزة وغيّر كلمة المرور.`,
-      url: "/admin/settings",
-      tag: "login",
-    }).catch(() => {}),
-  );
   redirect("/admin?welcome=1");
 }
 
