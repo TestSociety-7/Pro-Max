@@ -308,3 +308,18 @@ export async function updateOffers(_prev: FormState, fd: FormData): Promise<Form
   revalidatePath("/", "layout");
   return { ok: true, message: offers.some((o) => o.active) ? "تم حفظ العروض وهي تظهر الآن في المتجر." : "تم الحفظ. لا يوجد عرض مفعّل حالياً." };
 }
+
+/** Admin → Settings: send a test notification to every device with alerts on. */
+export async function sendTestPush(): Promise<string> {
+  await requireAdmin();
+  const r = await notifyAdmins({
+    title: "✅ الإشعارات تعمل",
+    body: "هكذا سيصلك تنبيه كل طلب جديد.",
+    url: "/admin",
+    tag: "test",
+  });
+  if (!r.devices) return "لا يوجد جهاز مفعّل. افتح التطبيق من الشاشة الرئيسية واضغط زر الجرس 🔔 ثم اسمح بالإشعارات.";
+  if (r.sent) return `تم الإرسال إلى ${r.sent} ${r.sent === 1 ? "جهاز" : "أجهزة"}.${r.failed ? ` تعذّر الإرسال إلى ${r.failed}.` : ""}`;
+  if (r.removed) return "انتهت صلاحية تفعيل الإشعارات على جهازك. اضغط زر الجرس 🔔 مرة أخرى لتفعيلها.";
+  return "تعذّر إرسال الإشعار الآن. حاول مرة أخرى بعد قليل.";
+}

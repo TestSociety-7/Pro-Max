@@ -8,6 +8,7 @@ import {
   checkNewOrders,
   getPushKey,
   subscribePush,
+  sendTestPush,
   unsubscribePush,
   type NewOrderAlert,
 } from "./actions";
@@ -184,7 +185,10 @@ export function LiveTools() {
         }));
       const ok = await subscribePush(JSON.stringify(sub));
       setPush(ok ? "on" : "off");
-      if (ok) chime();
+      if (ok) {
+        chime();
+        sendTestPush().catch(() => {}); // confirm right away that alerts reach this phone
+      }
     } catch (err) {
       console.warn("push setup failed", err);
       setPush(prev);

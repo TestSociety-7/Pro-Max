@@ -3,6 +3,7 @@ import { countAdminSessions, getSettings } from "@/lib/db";
 import { f } from "@/app/admin/fieldProps";
 import { AdminForm, Field } from "@/app/admin/AdminForm";
 import { logoutEverywhere, updateSettings } from "@/app/admin/actions";
+import { TestPush } from "@/app/admin/TestPush";
 
 export default async function SettingsPage() {
   await requireAdmin();
@@ -96,6 +97,15 @@ export default async function SettingsPage() {
           </Field>
         </fieldset>
       </AdminForm>
+
+      <section className="card security-card">
+        <h2>إشعارات الطلبات</h2>
+        <p>
+          على iPhone: افتح لوحة التحكم من أيقونة التطبيق على الشاشة الرئيسية، اضغط زر الجرس 🔔 في الأعلى واختر «السماح».
+          بعدها اضغط الزر هنا للتأكد أن الإشعار يصل.
+        </p>
+        <TestPush />
+      </section>
 
       <section className="card danger-card security-card">
         <h2>الأمان</h2>

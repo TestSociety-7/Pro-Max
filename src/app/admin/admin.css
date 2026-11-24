@@ -1919,3 +1919,4 @@ html, body.admin { overflow-x: clip; max-width: 100%; }
 .security-card { margin-top: 18px; }
 .security-card h2 { margin: 0 0 8px; font-size: 1.1rem; }
 .security-card p { margin: 0 0 10px; color: var(--muted); line-height: 1.8; }
+.test-push { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; } .test-push .a-msg { margin: 0; }
