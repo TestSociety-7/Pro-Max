@@ -1916,3 +1916,6 @@ fieldset.card legend + * {
 html, body.admin { overflow-x: clip; max-width: 100%; }
 .panel, .panel-body, .panel-main { min-width: 0; max-width: 100%; }
 .admin-form input, .admin-form select, .admin-form textarea { max-width: 100%; min-width: 0; }
+.security-card { margin-top: 18px; }
+.security-card h2 { margin: 0 0 8px; font-size: 1.1rem; }
+.security-card p { margin: 0 0 10px; color: var(--muted); line-height: 1.8; }

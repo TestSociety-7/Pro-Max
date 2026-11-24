@@ -147,6 +147,13 @@ async function migrate(s: Store) {
       data TEXT NOT NULL,
       created_at TEXT NOT NULL
     )`,
+    `CREATE TABLE IF NOT EXISTS admin_sessions (
+      id TEXT PRIMARY KEY,
+      created_at ${big} NOT NULL,
+      expires_at ${big} NOT NULL,
+      last_seen ${big} NOT NULL,
+      agent TEXT NOT NULL DEFAULT ''
+    )`,
     `CREATE TABLE IF NOT EXISTS presence (
       id TEXT PRIMARY KEY,
       last_seen ${big} NOT NULL,
@@ -383,17 +390,60 @@ export async function deleteOrders(ids: number[]) {
   await (await db()).query(`DELETE FROM orders WHERE id IN (${clean.map(() => "?").join(",")})`, clean);
 }
 
+/* --------------------------- admin sessions ---------------------------- */
+// Each login gets a random id stored here, so logging out (or "sign out everywhere")
+// really ends the session on the server, not just in the browser.
+
+export async function createAdminSession(id: string, expiresAt: number, agent: string) {
+  const c = await db();
+  const now = Date.now();
+  await c.query("DELETE FROM admin_sessions WHERE expires_at < ?", [now]);
+  await c.query("INSERT INTO admin_sessions (id, created_at, expires_at, last_seen, agent) VALUES (?, ?, ?, ?, ?)", [
+    id,
+    now,
+    expiresAt,
+    now,
+    agent.slice(0, 160),
+  ]);
+}
+
+export async function adminSessionValid(id: string): Promise<boolean> {
+  const c = await db();
+  const now = Date.now();
+  const rows = await c.query("SELECT last_seen FROM admin_sessions WHERE id = ? AND expires_at > ?", [id, now]);
+  if (!rows.length) return false;
+  // remember activity at most once a minute
+  if (now - Number(rows[0].last_seen) > 60_000) await c.query("UPDATE admin_sessions SET last_seen = ? WHERE id = ?", [now, id]);
+  return true;
+}
+
+export async function deleteAdminSession(id: string) {
+  await (await db()).query("DELETE FROM admin_sessions WHERE id = ?", [id]);
+}
+
+export async function deleteAllAdminSessions() {
+  await (await db()).query("DELETE FROM admin_sessions");
+}
+
+export async function countAdminSessions(): Promise<number> {
+  const rows = await (await db()).query("SELECT COUNT(*) AS n FROM admin_sessions WHERE expires_at > ?", [Date.now()]);
+  return Number(rows[0]?.n ?? 0);
+}
+
 /* --------------------------- login throttle ---------------------------- */
 
 const WINDOW_MS = 15 * 60 * 1000;
-const MAX_FAILURES = 8;
+const MAX_FAILURES = 8; // per visitor
+const MAX_GLOBAL_FAILURES = 40; // from everyone together, against spread-out guessing
 
 export async function tooManyLoginFailures(key: string): Promise<boolean> {
   const c = await db();
   const since = Date.now() - WINDOW_MS;
   await c.query("DELETE FROM login_attempts WHERE attempted_at < ?", [since]);
-  const rows = await c.query("SELECT COUNT(*) AS n FROM login_attempts WHERE attempt_key = ? AND attempted_at >= ?", [key, since]);
-  return Number(rows[0]?.n ?? 0) >= MAX_FAILURES;
+  const mine = await c.query("SELECT COUNT(*) AS n FROM login_attempts WHERE attempt_key = ? AND attempted_at >= ?", [key, since]);
+  if (Number(mine[0]?.n ?? 0) >= MAX_FAILURES) return true;
+  const all = await c.query("SELECT COUNT(*) AS n FROM login_attempts WHERE attempted_at >= ?", [since]);
+  return Number(all[0]?.n ?? 0) >= MAX_GLOBAL_FAILURES;
 }
 
 export async function recordLoginFailure(key: string) {

@@ -1,12 +1,12 @@
 import { requireAdmin } from "@/lib/auth";
-import { getSettings } from "@/lib/db";
+import { countAdminSessions, getSettings } from "@/lib/db";
 import { f } from "@/app/admin/fieldProps";
 import { AdminForm, Field } from "@/app/admin/AdminForm";
-import { updateSettings } from "@/app/admin/actions";
+import { logoutEverywhere, updateSettings } from "@/app/admin/actions";
 
 export default async function SettingsPage() {
   await requireAdmin();
-  const s = await getSettings();
+  const [s, sessions] = await Promise.all([getSettings(), countAdminSessions().catch(() => 1)]);
 
   return (
     <>
@@ -96,6 +96,20 @@ export default async function SettingsPage() {
           </Field>
         </fieldset>
       </AdminForm>
+
+      <section className="card danger-card security-card">
+        <h2>الأمان</h2>
+        <p>
+          لوحة التحكم محمية بكلمة مرور مشفّرة، وجلسة تنتهي تلقائياً بعد 12 ساعة، وقفل بعد المحاولات الخاطئة المتكررة،
+          وتنبيه على هاتفك عند كل تسجيل دخول جديد.
+        </p>
+        <p className="muted">الأجهزة المسجّلة الآن: {sessions}</p>
+        <form action={logoutEverywhere}>
+          <button type="submit" className="a-btn a-btn-danger">
+            تسجيل الخروج من كل الأجهزة
+          </button>
+        </form>
+      </section>
     </>
   );
 }

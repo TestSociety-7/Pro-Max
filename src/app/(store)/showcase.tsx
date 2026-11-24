@@ -199,7 +199,16 @@ export function DiscRing() {
           {PARTS.map((p, i) => (
             <figure key={p.src} className={`disc-card${i === active ? " on" : ""}`} style={{ ["--i" as string]: i }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.src} alt={p.label} width={p.w} height={p.h} loading="lazy" draggable={false} />
+              <img
+                src={p.src}
+                srcSet={`${p.src} 1x, ${p.src.replace(".webp", "@2x.webp")} 2x`}
+                alt={p.label}
+                width={p.w}
+                height={p.h}
+                loading="lazy"
+                decoding="async"
+                draggable={false}
+              />
             </figure>
           ))}
         </div>

@@ -36,7 +36,10 @@ function money(cents: number, currency: string) {
   }
 }
 
-const PICS = ["/product/cut-black-700.webp", "/product/cut-beige-700.webp"];
+const PICS = [
+  { src: "/product/cut-black-700.webp", hi: "/product/cut-black.webp" },
+  { src: "/product/cut-beige-700.webp", hi: "/product/cut-beige.webp" },
+];
 
 /** Pointer / device tilt for one 3D card. */
 function useTilt<T extends HTMLElement>() {
@@ -142,7 +145,17 @@ function OfferCard({ o, currency, featured }: { o: OfferView; currency: string; 
           <span className="offer3d-orbit o2" />
           {Array.from({ length: shown }, (_, i) => (
             // eslint-disable-next-line @next/next/no-img-element
-            <img key={i} src={PICS[i % 2]} alt="" width={180} height={324} loading="lazy" decoding="async" style={{ ["--n" as string]: i }} />
+            <img
+              key={i}
+              src={PICS[i % 2].src}
+              srcSet={`${PICS[i % 2].src} 1x, ${PICS[i % 2].hi} 2x`}
+              alt=""
+              width={180}
+              height={324}
+              loading="lazy"
+              decoding="async"
+              style={{ ["--n" as string]: i }}
+            />
           ))}
           {o.quantity > 1 && <span className="offer3d-qty" dir="ltr">x{o.quantity}</span>}
         </div>

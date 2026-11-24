@@ -2,10 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { headers } from "next/headers";
 import {
   authConfigProblem,
   clientKey,
   endSession,
+  endAllSessions,
   requireAdmin,
   startSession,
   verifyPassword,
@@ -37,7 +40,7 @@ import {
   type StoreSettings,
   formatMoney,
 } from "@/lib/content";
-import { vapidPublicKey } from "@/lib/push";
+import { notifyAdmins, vapidPublicKey } from "@/lib/push";
 
 export type FormState = { ok?: boolean; message?: string; errors?: Record<string, string> };
 
@@ -78,13 +81,32 @@ export async function login(_prev: FormState, fd: FormData): Promise<FormState> 
     return { message: "محاولات خاطئة كثيرة. انتظر 15 دقيقة ثم حاول مجدداً." };
   }
   const password = typeof fd.get("password") === "string" ? String(fd.get("password")) : "";
-  if (!password || password.length > 200 || !verifyPassword(password)) {
+  const bot = typeof fd.get("username_hp") === "string" && String(fd.get("username_hp")) !== "";
+  if (bot || !password || password.length > 200 || !verifyPassword(password)) {
     await recordLoginFailure(key);
+    // slow every wrong guess down a little
+    await new Promise((r) => setTimeout(r, 700 + Math.random() * 500));
     return { message: "كلمة المرور غير صحيحة." };
   }
   await clearLoginFailures(key);
   await startSession();
+  const agent = (await headers()).get("user-agent") ?? "";
+  const device = /iPhone|iPad/.test(agent) ? "iPhone / iPad" : /Android/.test(agent) ? "Android" : /Mac/.test(agent) ? "Mac" : /Windows/.test(agent) ? "Windows" : "جهاز";
+  after(() =>
+    notifyAdmins({
+      title: "🔐 تسجيل دخول جديد إلى لوحة التحكم",
+      body: `${device} · ${new Intl.DateTimeFormat("ar-u-nu-latn", { timeStyle: "short", dateStyle: "medium", timeZone: "Asia/Jerusalem" }).format(new Date())}. إن لم تكن أنت، سجّل الخروج من كل الأجهزة وغيّر كلمة المرور.`,
+      url: "/admin/settings",
+      tag: "login",
+    }).catch(() => {}),
+  );
   redirect("/admin?welcome=1");
+}
+
+export async function logoutEverywhere() {
+  await requireAdmin();
+  await endAllSessions();
+  redirect("/admin/login");
 }
 
 export async function logout() {

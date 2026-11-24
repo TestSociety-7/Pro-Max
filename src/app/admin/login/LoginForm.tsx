@@ -9,6 +9,15 @@ export function LoginForm() {
   const [show, setShow] = useState(false);
   return (
     <form action={action} className="login-form">
+      {/* bots fill every field; people never see this one */}
+      <input
+        type="text"
+        name="username_hp"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden
+        style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none", insetInlineStart: -9999 }}
+      />
       <label htmlFor="password" className="sr-only">
         كلمة المرور
       </label>

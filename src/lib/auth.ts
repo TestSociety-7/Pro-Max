@@ -1,12 +1,14 @@
 import "server-only";
-import { createHmac, scryptSync, timingSafeEqual, createHash } from "node:crypto";
+import { createHmac, scryptSync, timingSafeEqual, createHash, randomBytes } from "node:crypto";
+import { adminSessionValid, createAdminSession, deleteAdminSession, deleteAllAdminSessions } from "./db";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 // Single-owner admin. The password hash and the cookie-signing secret live only
 // in server environment variables; nothing here is sent to the browser.
 
-const COOKIE = "pm_admin";
+// "__Host-" cookies can only be set over HTTPS, for this exact host, on path "/".
+const COOKIE = process.env.NODE_ENV === "production" ? "__Host-pm_admin" : "pm_admin";
 const SESSION_HOURS = 12;
 
 export class AuthConfigError extends Error {}
@@ -53,7 +55,10 @@ function sign(payload: string): string {
 
 export async function startSession() {
   const exp = Date.now() + SESSION_HOURS * 3600 * 1000;
-  const payload = Buffer.from(JSON.stringify({ exp, v: credentialVersion() })).toString("base64url");
+  const sid = randomBytes(24).toString("base64url");
+  const agent = (await headers()).get("user-agent") ?? "";
+  await createAdminSession(sid, exp, agent);
+  const payload = Buffer.from(JSON.stringify({ exp, v: credentialVersion(), sid })).toString("base64url");
   const value = `${payload}.${sign(payload)}`;
   (await cookies()).set(COOKIE, value, {
     httpOnly: true,
@@ -64,22 +69,41 @@ export async function startSession() {
   });
 }
 
+async function readSession(): Promise<{ exp: number; v: string; sid: string } | null> {
+  if (authConfigProblem()) return null;
+  const raw = (await cookies()).get(COOKIE)?.value;
+  if (!raw || raw.length > 600) return null;
+  const [payload, sig] = raw.split(".");
+  if (!payload || !sig) return null;
+  const expected = Buffer.from(sign(payload));
+  const given = Buffer.from(sig);
+  if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
+  try {
+    const data = JSON.parse(Buffer.from(payload, "base64url").toString()) as { exp: number; v: string; sid: string };
+    if (!(data.exp > Date.now() && data.v === credentialVersion() && typeof data.sid === "string")) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 export async function endSession() {
+  const s = await readSession();
+  if (s) await deleteAdminSession(s.sid).catch(() => {});
+  (await cookies()).delete(COOKIE);
+}
+
+/** Sign out every device, including this one. */
+export async function endAllSessions() {
+  await deleteAllAdminSessions();
   (await cookies()).delete(COOKIE);
 }
 
 export async function isAdmin(): Promise<boolean> {
-  if (authConfigProblem()) return false;
-  const raw = (await cookies()).get(COOKIE)?.value;
-  if (!raw) return false;
-  const [payload, sig] = raw.split(".");
-  if (!payload || !sig) return false;
-  const expected = Buffer.from(sign(payload));
-  const given = Buffer.from(sig);
-  if (expected.length !== given.length || !timingSafeEqual(expected, given)) return false;
+  const s = await readSession();
+  if (!s) return false;
   try {
-    const data = JSON.parse(Buffer.from(payload, "base64url").toString()) as { exp: number; v: string };
-    return data.exp > Date.now() && data.v === credentialVersion();
+    return await adminSessionValid(s.sid);
   } catch {
     return false;
   }
@@ -92,6 +116,7 @@ export async function requireAdmin() {
 
 export async function clientKey(): Promise<string> {
   const h = await headers();
-  const ip = (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || h.get("x-real-ip") || "unknown";
+  // on Vercel x-real-ip is set by the platform and cannot be faked by the visitor
+  const ip = h.get("x-real-ip") || (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || "unknown";
   return createHash("sha256").update(ip).digest("base64url").slice(0, 16);
 }

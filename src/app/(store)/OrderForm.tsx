@@ -157,7 +157,13 @@ export function OrderForm(p: Props) {
         <div className="success-3d" aria-hidden>
           <span className="success-ring" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={color === "beige" ? "/product/cut-beige-700.webp" : "/product/cut-black-700.webp"} alt="" width={200} height={360} />
+          <img
+            src={color === "beige" ? "/product/cut-beige-700.webp" : "/product/cut-black-700.webp"}
+            srcSet={color === "beige" ? "/product/cut-beige-700.webp 1x, /product/cut-beige.webp 2x" : "/product/cut-black-700.webp 1x, /product/cut-black.webp 2x"}
+            alt=""
+            width={200}
+            height={360}
+          />
           <span className="success-badge">
             <CheckIcon />
           </span>
