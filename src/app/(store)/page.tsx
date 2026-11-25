@@ -63,7 +63,7 @@ export default async function Home() {
   if (heroOffer) {
     price = formatMoney(heroOffer.priceCents, settings.currencyCode);
     compare = "";
-    priceLabel = [heroOffer.quantity > 1 ? `${heroOffer.quantity} قطع` : "", heroOffer.includesDelivery ? "مع التوصيل" : ""].filter(Boolean).join(" · ");
+    priceLabel = ""; // just the price in the hero; the offer card says "مع التوصيل"
   }
   const phone = settings.supportPhone.trim();
   const whatsapp = settings.whatsappNumber.replace(/[^\d]/g, "");
