@@ -219,7 +219,7 @@ export async function updateSettings(_prev: FormState, fd: FormData): Promise<Fo
     priceIncludesDelivery: fd.get("priceIncludesDelivery") === "on",
     displayPrice: num(fd, "displayPrice", errors),
     priceLabel: s(fd, "priceLabel", 80),
-    showOfferDiscount: fd.get("showOfferDiscount") === "on",
+    showOfferDiscount: false,
   };
   if (Object.keys(errors).length) return { message: "صحّح الحقول المحددة باللون الأحمر.", errors };
 

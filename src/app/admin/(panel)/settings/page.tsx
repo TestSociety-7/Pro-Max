@@ -67,19 +67,12 @@ export default async function SettingsPage() {
         <fieldset className="card">
           <legend>السعر المعروض في أعلى الصفحة</legend>
           <div className="grid-2">
-            <Field name="displayPrice" label="السعر المعروض (₪)" hint="السعر الكبير أعلى الصفحة، ويُقارن به سعر العرض لحساب الخصم. اتركه فارغاً لاستخدام سعر المنتج.">
+            <Field name="displayPrice" label="السعر المعروض (₪)" hint="السعر الكبير أعلى الصفحة عندما لا يوجد عرض مفعّل. عند تفعيل عرض يظهر سعر العرض نفسه. اتركه فارغاً لاستخدام سعر المنتج.">
               <input {...f("displayPrice")} inputMode="decimal" defaultValue={s.displayPrice || ""} placeholder="مثال: 300" />
             </Field>
             <Field name="priceLabel" label="النص فوق السعر" hint="اتركه فارغاً لإخفائه.">
               <input {...f("priceLabel")} defaultValue={s.priceLabel} dir="auto" placeholder="السعر الطبيعي · سعر القطعة مع التوصيل" />
             </Field>
-            <div className="a-field toggles">
-              <label className="switch">
-                <input type="checkbox" name="showOfferDiscount" defaultChecked={s.showOfferDiscount} />
-                <span aria-hidden />
-                إظهار الخصم في بطاقة العرض (مثال: 270 بدل 300 · خصم 30 ₪)
-              </label>
-            </div>
           </div>
         </fieldset>
 

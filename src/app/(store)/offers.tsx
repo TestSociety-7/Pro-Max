@@ -120,7 +120,6 @@ function OfferCard({ o, currency, featured }: { o: OfferView; currency: string; 
   const ref = useTilt<HTMLElement>();
   // always show both colors, even for a one-device offer
   const shown = Math.min(Math.max(o.quantity, 2), 3);
-  const saving = o.normalCents - o.priceCents;
   return (
     <article
       ref={ref}
@@ -165,18 +164,9 @@ function OfferCard({ o, currency, featured }: { o: OfferView; currency: string; 
           <p className="offer3d-sub">
             {o.quantity === 1 ? "قطعة Pro Max" : `${o.quantity} قطع Pro Max`}{o.includesDelivery ? " مع التوصيل لباب البيت" : ""}{o.quantity > 1 ? "، اختر لون كل قطعة." : "."}
           </p>
-          {saving > 0 && <span className="offer3d-discount">خصم {money(saving, currency)}</span>}
           <div className="offer3d-price">
             <strong>{money(o.priceCents, currency)}</strong>
-            {saving > 0 && <s>{money(o.normalCents, currency)}</s>}
           </div>
-          {saving > 0 && (
-            <p className="offer3d-instead">
-              بدل {money(o.normalCents, currency)}
-              {o.includesDelivery ? " مع التوصيل" : ""}
-              {o.quantity > 1 ? ` لـ ${o.quantity} قطع` : ""} بالسعر الطبيعي
-            </p>
-          )}
           {o.endsAt > 0 && <Countdown to={o.endsAt} />}
           <div className="offer3d-chips">
             {o.includesDelivery && <span className="chip-hot">شامل التوصيل</span>}

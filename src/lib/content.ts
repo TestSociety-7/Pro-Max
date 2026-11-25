@@ -77,7 +77,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   priceIncludesDelivery: true,
   displayPrice: 0,
   priceLabel: "السعر الطبيعي · سعر القطعة مع التوصيل",
-  showOfferDiscount: true,
+  showOfferDiscount: false,
 };
 
 export const DEFAULT_PRODUCT: ProductContent = {

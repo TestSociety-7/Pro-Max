@@ -25,8 +25,8 @@ export default async function Home() {
   const priceSet = product.price > 0 && settings.currencyCode;
   // the admin can show a different "regular" price in the hero (e.g. price incl. delivery)
   const shownPrice = settings.displayPrice > 0 ? settings.displayPrice : product.price;
-  const price = priceSet ? formatMoney(toCents(shownPrice), settings.currencyCode) : "";
-  const compare =
+  let price = priceSet ? formatMoney(toCents(shownPrice), settings.currencyCode) : "";
+  let compare =
     priceSet && product.compareAtPrice > shownPrice
       ? formatMoney(toCents(product.compareAtPrice), settings.currencyCode)
       : "";
@@ -57,6 +57,14 @@ export default async function Home() {
               (o.includesDelivery && !settings.priceIncludesDelivery ? toCents(settings.deliveryFee) : 0),
       }))
     : [];
+  // when an offer is on, the hero shows the same price as the offer card
+  const heroOffer = offerViews[0];
+  let priceLabel = settings.priceLabel.trim();
+  if (heroOffer) {
+    price = formatMoney(heroOffer.priceCents, settings.currencyCode);
+    compare = "";
+    priceLabel = [heroOffer.quantity > 1 ? `${heroOffer.quantity} قطع` : "", heroOffer.includesDelivery ? "مع التوصيل" : ""].filter(Boolean).join(" · ");
+  }
   const phone = settings.supportPhone.trim();
   const whatsapp = settings.whatsappNumber.replace(/[^\d]/g, "");
   const waLink = settings.showWhatsappButton && whatsapp.length >= 8 ? `https://wa.me/${whatsapp}?text=${encodeURIComponent(`مرحباً ${settings.storeName}، عندي سؤال`)}` : "";
@@ -123,7 +131,7 @@ export default async function Home() {
               {price ? (
                 <>
                   <span className="price-block">
-                    {settings.priceLabel.trim() && <small className="price-label">{settings.priceLabel.trim()}</small>}
+                    {priceLabel && <small className="price-label">{priceLabel}</small>}
                     <span className="price">{price}</span>
                   </span>
                   {compare && (
