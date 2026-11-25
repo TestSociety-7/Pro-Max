@@ -391,7 +391,7 @@ export function OrderForm(p: Props) {
                   {...a11y("zone")}
                 />
                 <span className="zone-name">{z.label}</span>
-                <span className="zone-fee">{z.feeCents ? money(z.feeCents, p.currency) : "توصيل مجاني"}</span>
+                <span className="zone-fee">{z.feeCents ? `+ ${money(z.feeCents, p.currency)}` : "مشمول في السعر"}</span>
               </label>
             ))}
           </div>
@@ -467,7 +467,7 @@ export function OrderForm(p: Props) {
         </div>
         <div>
           <span>التوصيل</span>
-          <span>{offer?.includesDelivery ? "مشمول في العرض" : !zone ? "اختر المنطقة" : fee === 0 ? (zoneFeeCents === 0 ? "مجاني" : "مجاني لهذا الطلب") : money(fee, p.currency)}</span>
+          <span>{offer?.includesDelivery ? "مشمول في العرض" : !zone ? "اختر المنطقة" : fee === 0 ? (zoneFeeCents === 0 ? "مشمول في السعر" : "مجاني لهذا الطلب") : money(fee, p.currency)}</span>
         </div>
         <div className="summary-total">
           <span>الإجمالي عند الاستلام</span>

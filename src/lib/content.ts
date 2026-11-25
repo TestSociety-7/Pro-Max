@@ -23,6 +23,10 @@ export type StoreSettings = {
   showWhatsappButton: boolean; // floating WhatsApp contact button on the store
   whatsappCheckout: boolean; // after an order, open WhatsApp with the order message
   westBankEnabled: boolean; // show the الضفة delivery choice at checkout
+  priceIncludesDelivery: boolean; // product price already covers delivery inside (الداخل)
+  displayPrice: number; // price shown in the hero and compared against offers; 0 = product price
+  priceLabel: string; // small text above the hero price
+  showOfferDiscount: boolean; // offer cards show "خصم X" and the struck regular price
 };
 
 export type Availability = "in_stock" | "sold_out";
@@ -70,6 +74,10 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   showWhatsappButton: true,
   whatsappCheckout: true,
   westBankEnabled: true,
+  priceIncludesDelivery: true,
+  displayPrice: 0,
+  priceLabel: "السعر الطبيعي · سعر القطعة مع التوصيل",
+  showOfferDiscount: true,
 };
 
 export const DEFAULT_PRODUCT: ProductContent = {
@@ -184,7 +192,9 @@ export function isZone(v: unknown): v is DeliveryZone {
   return DELIVERY_ZONES.some((z) => z.key === v);
 }
 export function zoneFee(settings: StoreSettings, zone: DeliveryZone): number {
-  return toCents(zone === "westbank" ? settings.deliveryFeeWestBank : settings.deliveryFee);
+  const fee = toCents(zone === "westbank" ? settings.deliveryFeeWestBank : settings.deliveryFee);
+  // when the price already includes delivery inside, only the difference for other areas is added
+  return settings.priceIncludesDelivery ? Math.max(0, fee - toCents(settings.deliveryFee)) : fee;
 }
 
 /** Delivery fee in cents for a zone and subtotal (cents). */

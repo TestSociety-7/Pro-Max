@@ -216,6 +216,10 @@ export async function updateSettings(_prev: FormState, fd: FormData): Promise<Fo
     showWhatsappButton: fd.get("showWhatsappButton") === "on",
     whatsappCheckout: fd.get("whatsappCheckout") === "on",
     westBankEnabled: fd.get("westBankEnabled") === "on",
+    priceIncludesDelivery: fd.get("priceIncludesDelivery") === "on",
+    displayPrice: num(fd, "displayPrice", errors),
+    priceLabel: s(fd, "priceLabel", 80),
+    showOfferDiscount: fd.get("showOfferDiscount") === "on",
   };
   if (Object.keys(errors).length) return { message: "صحّح الحقول المحددة باللون الأحمر.", errors };
 

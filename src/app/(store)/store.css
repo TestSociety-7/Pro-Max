@@ -2273,3 +2273,21 @@ html, body.store { overflow-x: clip; max-width: 100%; }
 @media (min-width: 520px) { .field-row { grid-template-columns: 1fr 1fr; } }
 .order-form input:not([type="radio"]):not([type="checkbox"]):not([type="hidden"]) { min-height: 52px; font-size: 16px; }
 .order-form .btn-block[type="submit"] { min-height: 58px; font-size: 1.08rem; }
+
+/* ---- clear pricing ---- */
+.price-block { display: inline-flex; flex-direction: column; line-height: 1.1; }
+.price-label { font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+.offer3d-discount {
+  display: inline-block;
+  margin: 2px auto 8px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 900;
+  font-size: 1.05rem;
+  box-shadow: 0 10px 28px -10px var(--accent);
+  transform: rotate(-2deg);
+}
+.offer3d-price s { text-decoration-thickness: 2px; text-decoration-color: color-mix(in srgb, var(--accent) 80%, transparent); }
+.offer3d-instead { margin: 8px 0 0; color: var(--muted); font-size: 0.95rem; }

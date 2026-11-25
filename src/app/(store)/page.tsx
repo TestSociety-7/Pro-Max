@@ -23,9 +23,11 @@ export default async function Home() {
 
   const open = !dbError && orderingOpen(product, settings);
   const priceSet = product.price > 0 && settings.currencyCode;
-  const price = priceSet ? formatMoney(toCents(product.price), settings.currencyCode) : "";
+  // the admin can show a different "regular" price in the hero (e.g. price incl. delivery)
+  const shownPrice = settings.displayPrice > 0 ? settings.displayPrice : product.price;
+  const price = priceSet ? formatMoney(toCents(shownPrice), settings.currencyCode) : "";
   const compare =
-    priceSet && product.compareAtPrice > product.price
+    priceSet && product.compareAtPrice > shownPrice
       ? formatMoney(toCents(product.compareAtPrice), settings.currencyCode)
       : "";
   const zones = DELIVERY_ZONES.filter((z) => z.key === "inside" || settings.westBankEnabled).map((z) => ({ key: z.key, label: z.label, feeCents: zoneFee(settings, z.key) }));
@@ -36,7 +38,6 @@ export default async function Home() {
       (settings.freeDeliveryFrom > 0
         ? `. مجاني للطلبات من ${formatMoney(toCents(settings.freeDeliveryFrom), settings.currencyCode)}`
         : "");
-  const cheapestFee = Math.min(...zones.map((z) => z.feeCents));
   const offerViews: OfferView[] = open
     ? liveOffers(offers).map((o) => ({
         id: o.id,
@@ -47,7 +48,13 @@ export default async function Home() {
         badge: o.badge,
         theme: o.theme,
         endsAt: o.endsAt ? offerEndMs(o.endsAt) : 0,
-        normalCents: toCents(product.price) * o.quantity + (o.includesDelivery ? cheapestFee : 0),
+        // what the same devices cost at the regular price, delivery inside included
+        normalCents: !settings.showOfferDiscount
+          ? 0
+          : settings.displayPrice > 0
+            ? toCents(settings.displayPrice) * o.quantity
+            : toCents(product.price) * o.quantity +
+              (o.includesDelivery && !settings.priceIncludesDelivery ? toCents(settings.deliveryFee) : 0),
       }))
     : [];
   const phone = settings.supportPhone.trim();
@@ -115,7 +122,10 @@ export default async function Home() {
             <div className="price-row">
               {price ? (
                 <>
-                  <span className="price">{price}</span>
+                  <span className="price-block">
+                    {settings.priceLabel.trim() && <small className="price-label">{settings.priceLabel.trim()}</small>}
+                    <span className="price">{price}</span>
+                  </span>
                   {compare && (
                     <s className="compare" aria-label={`السعر السابق ${compare}`}>
                       {compare}

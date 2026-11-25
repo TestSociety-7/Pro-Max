@@ -65,6 +65,25 @@ export default async function SettingsPage() {
         </fieldset>
 
         <fieldset className="card">
+          <legend>السعر المعروض في أعلى الصفحة</legend>
+          <div className="grid-2">
+            <Field name="displayPrice" label="السعر المعروض (₪)" hint="السعر الكبير أعلى الصفحة، ويُقارن به سعر العرض لحساب الخصم. اتركه فارغاً لاستخدام سعر المنتج.">
+              <input {...f("displayPrice")} inputMode="decimal" defaultValue={s.displayPrice || ""} placeholder="مثال: 300" />
+            </Field>
+            <Field name="priceLabel" label="النص فوق السعر" hint="اتركه فارغاً لإخفائه.">
+              <input {...f("priceLabel")} defaultValue={s.priceLabel} dir="auto" placeholder="السعر الطبيعي · سعر القطعة مع التوصيل" />
+            </Field>
+            <div className="a-field toggles">
+              <label className="switch">
+                <input type="checkbox" name="showOfferDiscount" defaultChecked={s.showOfferDiscount} />
+                <span aria-hidden />
+                إظهار الخصم في بطاقة العرض (مثال: 270 بدل 300 · خصم 30 ₪)
+              </label>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset className="card">
           <legend>العملة والتوصيل</legend>
           <div className="grid-2">
             <Field name="currencyCode" label="العملة" hint="ILS = شيكل (₪).">
@@ -77,6 +96,11 @@ export default async function SettingsPage() {
               <input {...f("deliveryFeeWestBank")} inputMode="decimal" defaultValue={s.deliveryFeeWestBank || ""} placeholder="0" />
             </Field>
             <div className="a-field toggles">
+              <label className="switch">
+                <input type="checkbox" name="priceIncludesDelivery" defaultChecked={s.priceIncludesDelivery} />
+                <span aria-hidden />
+                سعر المنتج يشمل التوصيل للداخل (للضفة يُضاف الفرق فقط)
+              </label>
               <label className="switch">
                 <input type="checkbox" name="westBankEnabled" defaultChecked={s.westBankEnabled} />
                 <span aria-hidden />
