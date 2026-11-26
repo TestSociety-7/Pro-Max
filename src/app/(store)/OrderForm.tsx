@@ -25,7 +25,7 @@ type Props = {
   /** the salad maker can be ordered */
   saladOpen: boolean;
   /** the drying rack, when it can be ordered */
-  rack: { name: string; priceCents: number; maxPerOrder: number } | null;
+  rack: { name: string; priceCents: number; maxPerOrder: number; orderable: boolean } | null;
   /** after saving, the customer is sent to WhatsApp with the order message */
   whatsappCheckout: boolean;
 };
@@ -56,12 +56,12 @@ export function OrderForm(p: Props) {
   // when an offer is active it is the only choice, picked for the customer
   const [offerId, setOfferId] = useState(p.offers[0]?.id ?? "");
   const [unitColors, setUnitColors] = useState<string[]>([]);
-  const [item, setItem] = useState<"salad" | "rack">(p.rack ? "rack" : "salad");
-  const isRack = item === "rack" && !!p.rack;
+  const [item, setItem] = useState<"salad" | "rack">(p.rack?.orderable || !p.saladOpen ? "rack" : "salad");
+  const isRack = item === "rack" && !!p.rack?.orderable;
   const offer = isRack ? undefined : p.offers.find((o) => o.id === offerId);
   const maxQty = isRack ? p.rack!.maxPerOrder : p.maxPerOrder;
   const pickItem = (next: "salad" | "rack") => {
-    if (next === "rack" && !p.rack) return;
+    if (next === "rack" && !p.rack?.orderable) return;
     if (next === "salad" && !p.saladOpen) return;
     setItem(next);
     setQty(1);
@@ -289,21 +289,23 @@ export function OrderForm(p: Props) {
         </label>
       </div>
 
-      {p.rack && p.saladOpen && (
+      {p.rack && (
         <fieldset className="field">
           <legend>اختر المنتج</legend>
           <div className="item-options">
             <label className="item-option">
-              <input type="radio" name="item_pick" value="rack" checked={isRack} onChange={() => pickItem("rack")} />
+              <input type="radio" name="item_pick" value="rack" checked={isRack} disabled={!p.rack.orderable} onChange={() => pickItem("rack")} />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/product/rack/open-720.webp" alt="" width={90} height={58} />
               <span>{p.rack.name}</span>
+              <small className="item-price">{p.rack.orderable ? money(p.rack.priceCents, p.currency) : "السعر يُعلن قريباً"}</small>
             </label>
             <label className="item-option">
-              <input type="radio" name="item_pick" value="salad" checked={!isRack} onChange={() => pickItem("salad")} />
+              <input type="radio" name="item_pick" value="salad" checked={!isRack} disabled={!p.saladOpen} onChange={() => pickItem("salad")} />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/product/cut-black-700.webp" alt="" width={44} height={80} />
               <span>ماكنة السلطة Pro Max</span>
+              <small className="item-price">{p.offers[0] ? money(p.offers[0].priceCents, p.currency) : money(p.unitCents, p.currency)}</small>
             </label>
           </div>
         </fieldset>

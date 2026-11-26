@@ -2560,3 +2560,113 @@ html, body.store { overflow-x: clip; max-width: 100%; }
 }
 .salad-buy { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 12px; }
 .salad-buy strong { font-size: clamp(1.5rem, 6vw, 2rem); }
+
+/* ------------------------- hero: two products in 3D ------------------------- */
+.hero-duo .hero-stage { padding-top: 76px; }
+.duo-scene {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 1460 / 1040;
+  margin: 0 auto;
+  perspective: 1400px;
+  transform-style: preserve-3d;
+}
+.duo-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  transition: transform 0.9s var(--ease), opacity 0.6s var(--ease), filter 0.9s var(--ease);
+  transform-style: preserve-3d;
+}
+.duo-face.before { transform: translateX(45%) translateZ(-320px) rotateY(-55deg); opacity: 0; filter: blur(6px); pointer-events: none; }
+.duo-face.after { transform: translateX(-45%) translateZ(-320px) rotateY(55deg); opacity: 0; filter: blur(6px); pointer-events: none; }
+.duo-face.on { transform: none; opacity: 1; }
+.duo-face .rack-stage-wrap { width: 100%; }
+.duo-ring {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: 92%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  transform: rotateX(74deg);
+  box-shadow: 0 0 60px color-mix(in srgb, var(--accent) 25%, transparent), inset 0 0 40px color-mix(in srgb, var(--accent) 15%, transparent);
+  animation: duo-spin 18s linear infinite;
+  pointer-events: none;
+}
+.duo-ring.r2 { width: 70%; border-style: dashed; opacity: 0.6; animation-duration: 26s; animation-direction: reverse; }
+@keyframes duo-spin { to { transform: rotateX(74deg) rotateZ(360deg); } }
+.duo-floor {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  bottom: 2%;
+  height: 34px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 50%, transparent), transparent);
+  filter: blur(10px);
+  pointer-events: none;
+}
+.duo-salad { display: flex; align-items: flex-end; justify-content: center; height: 92%; animation: rack-float 6s ease-in-out infinite; }
+.duo-salad img { height: 100%; width: auto; filter: drop-shadow(0 30px 30px rgba(0, 0, 0, 0.7)); }
+.duo-salad img + img { margin-inline-start: -14%; transform: translateZ(-40px) scale(0.92); }
+
+.duo-tabs {
+  display: inline-grid;
+  grid-auto-flow: column;
+  gap: 6px;
+  padding: 5px;
+  margin-bottom: 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.duo-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px 7px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.3s var(--ease), color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+.duo-tabs button img { height: 30px; width: auto; border-radius: 6px; object-fit: contain; }
+.duo-tabs button[aria-selected="true"] {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 85%, #fff), var(--accent));
+  color: var(--accent-ink);
+  box-shadow: 0 10px 26px -12px var(--accent);
+}
+.duo-copy { animation: duo-in 0.6s var(--ease) both; }
+@keyframes duo-in { from { opacity: 0; transform: translateY(14px); } }
+.item-price { color: var(--muted); font-weight: 600; font-size: 0.82rem; }
+.item-option:has(input:disabled) { opacity: 0.55; cursor: not-allowed; }
+@media (prefers-reduced-motion: reduce) {
+  .duo-ring, .duo-salad { animation: none; }
+  .duo-face, .duo-copy { transition: none; animation: none; }
+}
+.duo-face .rack-dots { display: none; }
+.duo-salad { position: absolute; inset: 2% 8% 6%; height: auto; display: flex; align-items: flex-end; justify-content: center; }
+.duo-salad img { height: 100%; width: auto; max-width: 50%; object-fit: contain; }
+.hero-duo > * { min-width: 0; }
+@media (min-width: 960px) {
+  .hero-duo { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .hero-duo .duo-scene { max-width: 100%; }
+  .hero-duo h1 { font-size: clamp(2.3rem, 5vw, 4.4rem); }
+}
+@media (min-width: 960px) {
+  .hero-duo .hero-stage { position: relative; inset: auto; order: 2; padding: 110px 40px 60px 24px; }
+  .hero-duo .hero-copy { justify-self: stretch; max-width: none; padding: 110px 56px 100px 24px; }
+  .hero-duo::after { display: none; }
+}

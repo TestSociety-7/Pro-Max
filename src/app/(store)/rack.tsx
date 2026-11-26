@@ -202,3 +202,82 @@ export function OrderRackButton({ label }: { label: string }) {
   );
 }
 
+
+type HeroItem = { key: "rack" | "salad"; tab: string; name: string; lede: string; price: string; orderable: boolean };
+
+/** Hero with both products: a 3D swing between the rack and the salad maker. */
+export function HeroShowcase({ items, storeName, contactHref, rackName }: { items: HeroItem[]; storeName: string; contactHref: string; rackName: string }) {
+  const [active, setActive] = useState(0);
+  const it = items[active];
+  return (
+    <section className="hero hero-rack hero-duo" aria-labelledby="hero-title">
+      <div className="hero-stage">
+        <div className="duo-scene">
+          <span className="duo-ring" aria-hidden />
+          <span className="duo-ring r2" aria-hidden />
+          {items.map((x, i) => (
+            <div key={x.key} className={`duo-face${i === active ? " on" : i < active ? " before" : " after"}`} aria-hidden={i !== active}>
+              {x.key === "rack" ? (
+                <RackStage name={rackName} eager />
+              ) : (
+                <div className="duo-salad">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/product/cut-black-700.webp" srcSet="/product/cut-black-700.webp 1x, /product/cut-black.webp 2x" alt={`${x.name} باللون الأسود`} width={220} height={396} />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/product/cut-beige-700.webp" srcSet="/product/cut-beige-700.webp 1x, /product/cut-beige.webp 2x" alt={`${x.name} باللون البيج`} width={220} height={396} />
+                </div>
+              )}
+            </div>
+          ))}
+          <span className="duo-floor" aria-hidden />
+        </div>
+      </div>
+      <div className="hero-copy">
+        {items.length > 1 && (
+          <div className="duo-tabs" role="tablist" aria-label="منتجاتنا">
+            {items.map((x, i) => (
+              <button key={x.key} type="button" role="tab" aria-selected={i === active} onClick={() => setActive(i)}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={x.key === "rack" ? "/product/rack/open-720.webp" : "/product/cut-black-700.webp"} alt="" width={x.key === "rack" ? 54 : 22} height={36} />
+                {x.tab}
+              </button>
+            ))}
+          </div>
+        )}
+        <div key={it.key} className="duo-copy">
+          <p className="eyebrow">
+            <span dir="ltr">{storeName}</span>
+          </p>
+          <h1 id="hero-title">{it.name}</h1>
+          {it.lede && <p className="lede">{it.lede}</p>}
+          <div className="price-row">
+            {it.price ? <span className="price">{it.price}</span> : <span className="price price-pending">السعر يُعلن قريباً</span>}
+            <span className="cod-pill">الدفع عند الاستلام</span>
+          </div>
+          <div className="hero-actions" id="hero-cta">
+            {it.orderable ? (
+              <a
+                className="btn btn-primary btn-large"
+                href="#order"
+                onClick={(e) => {
+                  e.preventDefault();
+                  chooseItem(it.key);
+                  document.getElementById("order")?.scrollIntoView({ behavior: "smooth" });
+                }}
+              >
+                اطلب الآن
+              </a>
+            ) : (
+              <a className="btn btn-primary btn-large" href={contactHref || "#order"}>
+                تواصل معنا للطلب
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+      <a href={it.key === "rack" ? "#rack" : "#salad"} className="scroll-cue" aria-label="اكتشف المزيد">
+        <span aria-hidden />
+      </a>
+    </section>
+  );
+}

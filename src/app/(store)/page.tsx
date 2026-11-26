@@ -4,7 +4,7 @@ import { DEFAULT_PRODUCT, DEFAULT_RACK, DEFAULT_SETTINGS, rackOrderable, DELIVER
 import { OrderForm } from "./OrderForm";
 import { RevealController, StickyOrder } from "./client";
 import { type OfferView } from "./offers";
-import { OrderRackButton, RackSection, RackStage, SaladSimple, type RackView } from "./rack";
+import { HeroShowcase, RackSection, SaladSimple, type RackView } from "./rack";
 import { CallIcon, CashIcon, CheckIcon, PhoneIcon, TruckIcon, WhatsAppIcon } from "./icons";
 
 export default async function Home() {
@@ -105,42 +105,16 @@ export default async function Home() {
       </header>
 
       <main id="top">
-        {/* 1. Opening scene: the drying rack is the main product */}
-        <section className="hero hero-rack" aria-labelledby="hero-title">
-          <div className="hero-stage">
-            <RackStage name={rack.name} eager />
-          </div>
-          <div className="hero-copy">
-            <p className="eyebrow">
-              <span dir="ltr">{settings.storeName}</span>
-            </p>
-            <h1 id="hero-title">{rack.name}</h1>
-            {rack.intro && <p className="lede">{rack.intro}</p>}
-
-            <div className="price-row">
-              {rackPrice ? (
-                <span className="price">{rackPrice}</span>
-              ) : (
-                <span className="price price-pending">السعر يُعلن قريباً</span>
-              )}
-              <span className="cod-pill">
-                <CashIcon /> الدفع عند الاستلام
-              </span>
-            </div>
-
-            <div className="hero-actions" id="hero-cta">
-              {rackOpen ? <OrderRackButton label="اطلب الآن" /> : (
-                <a className="btn btn-primary btn-large" href={waLink || "#order"}>
-                  تواصل معنا للطلب
-                </a>
-              )}
-            </div>
-            {rack.availability === "sold_out" && <p className="stock-note">نفدت الكمية حالياً.</p>}
-          </div>
-          <a href="#rack" className="scroll-cue" aria-label="اكتشف المزيد">
-            <span aria-hidden />
-          </a>
-        </section>
+        {/* 1. Opening scene: the drying rack first, the salad maker one tap away */}
+        <HeroShowcase
+          storeName={settings.storeName}
+          contactHref={waLink}
+          rackName={rack.name}
+          items={[
+            ...(showRack ? [{ key: "rack" as const, tab: "منشر الغسيل", name: rack.name, lede: rack.intro, price: rackPrice, orderable: rackOpen }] : []),
+            { key: "salad" as const, tab: "ماكنة السلطة", name: product.name, lede: product.subheadline, price, orderable: saladOpen },
+          ]}
+        />
 
         {showRack && <RackSection r={rackView} />}
 
@@ -269,7 +243,7 @@ export default async function Home() {
                 deliveryEstimate={settings.deliveryEstimate}
                 offers={offerViews}
                 saladOpen={saladOpen}
-                rack={rackOpen ? { name: rack.name, priceCents: toCents(rack.price), maxPerOrder: rack.maxPerOrder } : null}
+                rack={showRack ? { name: rack.name, priceCents: toCents(rack.price), maxPerOrder: rack.maxPerOrder, orderable: rackOpen } : null}
                 whatsappCheckout={settings.whatsappCheckout && whatsapp.length >= 8}
               />
             )}
