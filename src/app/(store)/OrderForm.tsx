@@ -300,7 +300,7 @@ export function OrderForm(p: Props) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/product/rack/open-720.webp" alt="" width={90} height={58} />
               <span>{p.rack.name}</span>
-              <small className="item-price">{p.rack.orderable ? money(p.rack.priceCents, p.currency) : "السعر يُعلن قريباً"}</small>
+              <small className="item-price">{p.rack.orderable ? `${money(p.rack.priceCents, p.currency)}${p.rack.includesDelivery ? " مع التوصيل" : ""}` : "السعر يُعلن قريباً"}</small>
             </label>
             <label className="item-option">
               <input type="radio" name="item_pick" value="salad" checked={!isRack} disabled={!p.saladOpen} onChange={() => pickItem("salad")} />

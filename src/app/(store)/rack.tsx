@@ -228,3 +228,83 @@ export function MiniProduct({ item, name, price, note, img, open }: { item: "rac
     </section>
   );
 }
+
+/**
+ * Hero turntable for the rack, in the same spirit as the salad maker's stage:
+ * the cut-out rack stands on a glowing platform, turns gently, and its thermal
+ * cover lifts off and drops back on — so the customer sees it open and covered.
+ */
+export function RackTurntable({ name }: { name: string }) {
+  const tilt = useTilt<HTMLDivElement>();
+  const [covered, setCovered] = useState(false);
+  const paused = useRef(false);
+
+  useEffect(() => {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const t = setInterval(() => {
+      if (!paused.current) setCovered((c) => !c);
+    }, 3600);
+    return () => clearInterval(t);
+  }, []);
+
+  const choose = (c: boolean) => {
+    paused.current = true;
+    setCovered(c);
+  };
+
+  return (
+    <div className="rt">
+      <div ref={tilt} className="rt-scene">
+        <span className="rt-halo" aria-hidden />
+        <div className="rt-platform" aria-hidden>
+          <span className="rt-ring" />
+          <span className="rt-ring r2" />
+        </div>
+        <div className={`rt-product${covered ? " is-covered" : ""}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="rt-open"
+            src="/product/rack/cut-open-700.webp"
+            srcSet="/product/rack/cut-open-700.webp 1x, /product/rack/cut-open-1400.webp 2x"
+            alt={`${name} مفتوح`}
+            width={700}
+            height={449}
+            fetchPriority="high"
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="rt-cover"
+            src="/product/rack/cut-covered-700.webp"
+            srcSet="/product/rack/cut-covered-700.webp 1x, /product/rack/cut-covered-1400.webp 2x"
+            alt={`${name} مع الغطاء الحراري`}
+            width={700}
+            height={475}
+          />
+        </div>
+      </div>
+      <div className="rt-pills" role="group" aria-label="شكل المنشر">
+        <button type="button" aria-pressed={!covered} onClick={() => choose(false)}>
+          <span className="dot" aria-hidden /> مفتوح
+        </button>
+        <button type="button" aria-pressed={covered} onClick={() => choose(true)}>
+          <span className="dot dot-cover" aria-hidden /> مع الغطاء
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** The real photos (open / covered) in a section of their own, like the salad maker's colour gallery. */
+export function RackGallery({ name }: { name: string }) {
+  return (
+    <section className="gallery rack-gallery" aria-labelledby="rack-gallery-title">
+      <div className="gallery-copy" data-reveal>
+        <p className="eyebrow">صور حقيقية</p>
+        <h2 id="rack-gallery-title">مفتوح للتجفيف، أو مع الغطاء الحراري.</h2>
+      </div>
+      <div data-reveal>
+        <RackStage name={name} />
+      </div>
+    </section>
+  );
+}

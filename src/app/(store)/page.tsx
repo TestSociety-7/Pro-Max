@@ -5,10 +5,18 @@ import { OrderForm } from "./OrderForm";
 import { ColorShowcase, RevealController, StickyOrder } from "./client";
 import { ProductPicture } from "./ProductPicture";
 import { ProductStage } from "./stage/ProductStage";
-import { DiscRing, Spotlight } from "./showcase";
+import { DiscRing, Spotlight, type Callout } from "./showcase";
 import { OffersSection, type OfferView } from "./offers";
-import { MiniProduct, ProductPages, RackSection, RackStage, type RackView } from "./rack";
+import { MiniProduct, ProductPages, RackGallery, RackSection, RackTurntable, type RackView } from "./rack";
 import { CallIcon, CashIcon, CheckIcon, PhoneIcon, TruckIcon, WhatsAppIcon } from "./icons";
+
+// close-ups on the rack, using the owner's own feature lines
+const RACK_CALLOUTS: Callout[] = [
+  { title: "هيكل ألمنيوم متين", text: "🛠 هيكل ألمنيوم متين.", x: 12, y: 18, zoom: 1.5 },
+  { title: "230 واط", text: "⚡ قدرة تشغيل 230 واط موفّرة للكهرباء.", x: 50, y: 22, zoom: 1.45 },
+  { title: "15 إلى 20 كيلو", text: "👕 يتحمّل من 15 إلى 20 كيلو من الملابس.", x: 45, y: 48, zoom: 1.35 },
+  { title: "داخل وخارج المنزل", text: "🌧 مناسب للاستخدام داخل وخارج المنزل، ومصمم لتحمّل المطر.", x: 50, y: 88, zoom: 1.35 },
+];
 
 export default async function Home() {
   let product = DEFAULT_PRODUCT;
@@ -128,7 +136,7 @@ export default async function Home() {
             <>
         <section className="hero hero-rack" aria-labelledby="rack-hero-title">
           <div className="hero-stage">
-            <RackStage name={rack.name} eager />
+            <RackTurntable name={rack.name} />
           </div>
           <div className="hero-copy">
             <p className="eyebrow">
@@ -137,8 +145,17 @@ export default async function Home() {
             <h1 id="rack-hero-title">{rack.name}</h1>
             {rack.intro && <p className="lede">{rack.intro}</p>}
             <div className="price-row">
-              {rackPrice ? <span className="price">{rackPrice}</span> : <span className="price price-pending">السعر يُعلن قريباً</span>}
-              {rackPrice && rack.includesDelivery && <span className="cod-pill">شامل التوصيل</span>}
+              {rackPrice ? (
+                <span className="price-block">
+                  {rack.badge.trim() && <small className="price-label offer-tag">{rack.badge.trim()}</small>}
+                  <span className="price">
+                    {rackPrice}
+                    {rack.includesDelivery && <small className="price-with"> مع التوصيل</small>}
+                  </span>
+                </span>
+              ) : (
+                <span className="price price-pending">السعر يُعلن قريباً</span>
+              )}
               <span className="cod-pill">
                 <CashIcon /> الدفع عند الاستلام
               </span>
@@ -155,8 +172,19 @@ export default async function Home() {
           </a>
         </section>
 
+        <Spotlight
+          wide
+          src="/product/rack/cut-open-1400.webp"
+          alt={`${rack.name} من قريب`}
+          eyebrow="من قريب"
+          title={rack.outro || rack.name}
+          callouts={RACK_CALLOUTS}
+        />
+
         <RackSection r={rackView} />
-              <MiniProduct item="salad" name={product.name} price={price} note={heroOffer ? heroOffer.title : ""} img="/product/duo-480.webp" open={saladOpen} />
+
+        <RackGallery name={rack.name} />
+              <MiniProduct item="salad" name={product.name} price={price} note={heroOffer ? heroOffer.title : ""} img="/product/cut-black-700.webp" open={saladOpen} />
               <StickyOrder price={rackPrice || "اطلب الآن"} open={open} />
             </>
           }
@@ -266,7 +294,7 @@ export default async function Home() {
             </div>
           </section>
           )}
-              {showRack && <MiniProduct item="rack" name={rack.name} price={rackPrice} note={rack.includesDelivery ? "شامل التوصيل" : ""} img="/product/rack/open-720.webp" open={rackOpen} />}
+              {showRack && <MiniProduct item="rack" name={rack.name} price={rackPrice} note={[rack.includesDelivery ? "مع التوصيل" : "", rack.badge.trim()].filter(Boolean).join(" · ")} img="/product/rack/open-720.webp" open={rackOpen} />}
               <StickyOrder price={price || "اطلب الآن"} open={open} />
             </>
           }

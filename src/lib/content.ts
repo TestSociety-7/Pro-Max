@@ -293,6 +293,7 @@ export type RackContent = {
   whatsappTitle: string; // first line of the WhatsApp order message
   price: number; // major units; 0 = not set yet → section shows, ordering closed
   includesDelivery: boolean; // price already covers delivery to every area
+  badge: string; // small tag over the price, e.g. "عرض لفترة محدودة"; empty = hidden
   availability: Availability;
   maxPerOrder: number;
   headline: string;
@@ -308,6 +309,7 @@ export const DEFAULT_RACK: RackContent = {
   whatsappTitle: "منشر الغسيل الكهربائي",
   price: 320,
   includesDelivery: true,
+  badge: "عرض لفترة محدودة",
   availability: "in_stock",
   maxPerOrder: 3,
   headline: "🔥 ودّع نشر الغسيل التقليدي مع منشر الغسيل الكهربائي! 🔥",

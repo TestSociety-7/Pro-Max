@@ -36,6 +36,9 @@ export default async function RackPage() {
             <Field name="price" label="السعر (₪)" hint="الطلبات على المنشر تبقى مغلقة ما دام السعر 0.">
               <input {...f("price")} inputMode="decimal" defaultValue={r.price || ""} placeholder="0" />
             </Field>
+            <Field name="badge" label="شارة فوق السعر" hint="مثال: عرض لفترة محدودة. اتركه فارغاً لإخفائها.">
+              <input {...f("badge")} defaultValue={r.badge} dir="auto" />
+            </Field>
             <Field name="maxPerOrder" label="أقصى كمية في الطلب">
               <input {...f("maxPerOrder")} inputMode="numeric" defaultValue={r.maxPerOrder} />
             </Field>

@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 /* the camera "zooms" to each feature, with callouts appearing.        */
 /* ------------------------------------------------------------------ */
 
-type Callout = { title: string; text: string; x: number; y: number; zoom: number };
+export type Callout = { title: string; text: string; x: number; y: number; zoom: number };
 
 const CALLOUTS: Callout[] = [
   { title: "فتحة تغذية واسعة", text: "لإدخال الخضار بسهولة وبسرعة.", x: 58, y: 10, zoom: 1.55 },
@@ -16,7 +16,23 @@ const CALLOUTS: Callout[] = [
   { title: "قاعدة ثابتة", text: "أرجل مطاطية مانعة للانزلاق على الرخام.", x: 50, y: 95, zoom: 1.3 },
 ];
 
-export function Spotlight({ src, alt }: { src: string; alt: string }) {
+export function Spotlight({
+  src,
+  alt,
+  callouts = CALLOUTS,
+  eyebrow = "من قريب",
+  title = "كل تفصيلة مصمّمة لمطبخك.",
+  wide = false,
+}: {
+  src: string;
+  alt: string;
+  callouts?: Callout[];
+  eyebrow?: string;
+  title?: string;
+  /** landscape product (the drying rack) */
+  wide?: boolean;
+}) {
+  const CALLOUTS_ = callouts;
   const ref = useRef<HTMLElement>(null);
   const [step, setStep] = useState(-1);
 
@@ -32,10 +48,10 @@ export function Spotlight({ src, alt }: { src: string; alt: string }) {
       const p = Math.min(1, Math.max(0, -r.top / Math.max(1, total)));
       el.style.setProperty("--p", p.toFixed(4));
       // which callout is active (first 8% is the intro turn)
-      const s = p < 0.08 ? -1 : Math.min(CALLOUTS.length - 1, Math.floor(((p - 0.08) / 0.92) * CALLOUTS.length));
+      const s = p < 0.08 ? -1 : Math.min(CALLOUTS_.length - 1, Math.floor(((p - 0.08) / 0.92) * CALLOUTS_.length));
       setStep(s);
       if (reduce) return;
-      const c = s >= 0 ? CALLOUTS[s] : null;
+      const c = s >= 0 ? CALLOUTS_[s] : null;
       const narrow = window.innerWidth < 960;
       el.style.setProperty("--zoom", String(c ? (narrow ? 1 + (c.zoom - 1) * 0.55 : c.zoom) : 1));
       el.style.setProperty("--ox", `${c ? c.x : 50}%`);
@@ -55,18 +71,18 @@ export function Spotlight({ src, alt }: { src: string; alt: string }) {
   }, []);
 
   return (
-    <section className="spotlight" ref={ref} aria-labelledby="spot-title">
+    <section className={`spotlight${wide ? " spot-wide" : ""}`} ref={ref} aria-labelledby="spot-title">
       <div className="spot-sticky">
         <div className="spot-head">
-          <p className="eyebrow">من قريب</p>
-          <h2 id="spot-title">كل تفصيلة مصمّمة لمطبخك.</h2>
+          <p className="eyebrow">{eyebrow}</p>
+          <h2 id="spot-title">{title}</h2>
         </div>
         <div className="spot-stage">
           <div className="spot-glow" aria-hidden />
           <div className="spot-product">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={src} alt={alt} width={776} height={1400} loading="lazy" decoding="async" />
-            {CALLOUTS.map((c, i) => (
+            <img src={src} alt={alt} width={wide ? 1400 : 776} height={wide ? 898 : 1400} loading="lazy" decoding="async" />
+            {CALLOUTS_.map((c, i) => (
               <span
                 key={c.title}
                 className={`spot-pin${i === step ? " on" : ""}`}
@@ -78,7 +94,7 @@ export function Spotlight({ src, alt }: { src: string; alt: string }) {
           <div className="spot-floor" aria-hidden />
         </div>
         <ol className="spot-callouts">
-          {CALLOUTS.map((c, i) => (
+          {CALLOUTS_.map((c, i) => (
             <li key={c.title} className={i === step ? "on" : i < step ? "past" : ""}>
               <span className="spot-num">{String(i + 1).padStart(2, "0")}</span>
               <strong>{c.title}</strong>

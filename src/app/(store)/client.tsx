@@ -59,16 +59,15 @@ export function RevealController() {
 export function StickyOrder({ price, open }: { price: string; open: boolean }) {
   const [show, setShow] = useState(false);
   useEffect(() => {
-    const hero = document.getElementById("hero-cta");
-    const form = document.getElementById("order");
-    if (!hero || !form || !("IntersectionObserver" in window)) return;
+    // hidden while the hero button, the "buy also" card or the order form is on screen
+    const els = [...document.querySelectorAll("#hero-cta, #order, .mini-wrap")];
+    if (!els.length || !("IntersectionObserver" in window)) return;
     const seen = new Map<Element, boolean>();
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) seen.set(e.target, e.isIntersecting);
-      setShow(!seen.get(hero) && !seen.get(form));
+      setShow(!els.some((el) => seen.get(el)));
     });
-    io.observe(hero);
-    io.observe(form);
+    els.forEach((el) => io.observe(el));
     return () => io.disconnect();
   }, []);
   return (
