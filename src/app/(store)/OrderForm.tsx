@@ -391,7 +391,7 @@ export function OrderForm(p: Props) {
                   {...a11y("zone")}
                 />
                 <span className="zone-name">{z.label}</span>
-                <span className="zone-fee">{z.feeCents ? `+ ${money(z.feeCents, p.currency)}` : "مشمول في السعر"}</span>
+                <span className="zone-fee">{offer?.includesDelivery ? "مشمول في العرض" : z.feeCents ? `+ ${money(z.feeCents, p.currency)}` : "مشمول في السعر"}</span>
               </label>
             ))}
           </div>
