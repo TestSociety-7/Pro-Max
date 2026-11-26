@@ -308,3 +308,38 @@ export function RackGallery({ name }: { name: string }) {
     </section>
   );
 }
+
+/** Shares a link that opens this exact product page (?p=rack / ?p=salad). */
+export function ShareButton({ item, name }: { item: "rack" | "salad"; name: string }) {
+  const [copied, setCopied] = useState(false);
+  const share = async () => {
+    const url = `${location.origin}/?p=${item}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: name, text: name, url });
+        return;
+      } catch (e) {
+        if ((e as Error)?.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      window.prompt("انسخ الرابط", url);
+      return;
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2200);
+  };
+  return (
+    <button type="button" className="btn btn-ghost share-btn" onClick={share} aria-label={`مشاركة ${name}`}>
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <circle cx="18" cy="5" r="3" />
+        <circle cx="6" cy="12" r="3" />
+        <circle cx="18" cy="19" r="3" />
+        <path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" />
+      </svg>
+      {copied ? "تم نسخ الرابط" : "مشاركة"}
+    </button>
+  );
+}

@@ -7,7 +7,7 @@ import { ProductPicture } from "./ProductPicture";
 import { ProductStage } from "./stage/ProductStage";
 import { DiscRing, Spotlight, type Callout } from "./showcase";
 import { OffersSection, type OfferView } from "./offers";
-import { MiniProduct, ProductPages, RackGallery, RackSection, RackTurntable, type RackView } from "./rack";
+import { MiniProduct, ProductPages, RackGallery, RackSection, RackTurntable, ShareButton, type RackView } from "./rack";
 import { CallIcon, CashIcon, CheckIcon, PhoneIcon, TruckIcon, WhatsAppIcon } from "./icons";
 
 // close-ups on the rack, using the owner's own feature lines
@@ -164,6 +164,7 @@ export default async function Home() {
               <a className="btn btn-primary btn-large" href="#order">
                 اطلب الآن
               </a>
+              <ShareButton item="rack" name={rack.name} />
             </div>
             {rack.availability === "sold_out" && <p className="stock-note">نفدت الكمية حالياً.</p>}
           </div>
@@ -238,6 +239,7 @@ export default async function Home() {
               <a className="btn btn-primary btn-large" href="#order">
                 اطلب الآن
               </a>
+              <ShareButton item="salad" name={product.name} />
               {product.keyBenefit && <p className="key-benefit">{product.keyBenefit}</p>}
             </div>
             {product.availability === "sold_out" && <p className="stock-note">نفدت الكمية حالياً.</p>}

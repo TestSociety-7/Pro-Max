@@ -2877,3 +2877,12 @@ html, body.store { overflow-x: clip; max-width: 100%; }
 @keyframes tag-pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 25%, transparent); } }
 .price-with { font-size: 0.42em; font-weight: 700; color: var(--muted); margin-inline-start: 6px; }
 @media (prefers-reduced-motion: reduce) { .offer-tag { animation: none; } }
+
+/* share product button */
+.hero-actions .share-btn {
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.share-btn svg {
+  color: var(--accent);
+}
