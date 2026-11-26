@@ -42,8 +42,15 @@ export function RevealController() {
       },
       { rootMargin: "0px 0px -8% 0px", threshold: 0.12 },
     );
-    document.querySelectorAll("[data-reveal]").forEach((el) => io.observe(el));
-    return () => io.disconnect();
+    const watch = () => document.querySelectorAll("[data-reveal]:not(.in)").forEach((el) => io.observe(el));
+    watch();
+    // product pages swap in new sections; reveal those too
+    const mo = new MutationObserver(watch);
+    mo.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      io.disconnect();
+      mo.disconnect();
+    };
   }, []);
   return null;
 }

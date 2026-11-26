@@ -191,6 +191,7 @@ export async function updateRack(_prev: FormState, fd: FormData): Promise<FormSt
     name: s(fd, "name", 120) || current.name,
     whatsappTitle: s(fd, "whatsappTitle", 120) || current.whatsappTitle,
     price: num(fd, "price", errors),
+    includesDelivery: fd.get("includesDelivery") === "on",
     availability: availability === "sold_out" ? "sold_out" : "in_stock",
     maxPerOrder: num(fd, "maxPerOrder", errors, { min: 1, max: 50, int: true }) || 1,
     headline: s(fd, "headline", 200),

@@ -216,7 +216,7 @@ async function placeRackOrder(
   const zoneLabel = DELIVERY_ZONES.find((z) => z.key === zone)!.label;
   const unit = toCents(rack.price);
   const subtotal = unit * input.quantity;
-  const fee = deliveryFeeCents(settings, subtotal, zone);
+  const fee = rack.includesDelivery ? 0 : deliveryFeeCents(settings, subtotal, zone);
   try {
     const { order, duplicate } = await createOrder({
       idempotencyKey,

@@ -25,7 +25,7 @@ type Props = {
   /** the salad maker can be ordered */
   saladOpen: boolean;
   /** the drying rack, when it can be ordered */
-  rack: { name: string; priceCents: number; maxPerOrder: number; orderable: boolean } | null;
+  rack: { name: string; priceCents: number; maxPerOrder: number; orderable: boolean; includesDelivery: boolean } | null;
   /** after saving, the customer is sent to WhatsApp with the order message */
   whatsappCheckout: boolean;
 };
@@ -124,8 +124,10 @@ export function OrderForm(p: Props) {
 
   const subtotal = isRack ? p.rack!.priceCents * qty : offer ? offer.priceCents : p.unitCents * qty;
   const zoneFeeCents = p.zones.find((z) => z.key === zone)?.feeCents ?? 0;
+  // offer or rack whose price already covers delivery everywhere
+  const deliveryIncluded = isRack ? p.rack!.includesDelivery : !!offer?.includesDelivery;
   const fee =
-    !zone || offer?.includesDelivery
+    !zone || deliveryIncluded
       ? 0
       : p.freeDeliveryFromCents > 0 && subtotal >= p.freeDeliveryFromCents
         ? 0
@@ -446,7 +448,7 @@ export function OrderForm(p: Props) {
                   {...a11y("zone")}
                 />
                 <span className="zone-name">{z.label}</span>
-                <span className="zone-fee">{offer?.includesDelivery ? "مشمول في العرض" : z.feeCents ? `+ ${money(z.feeCents, p.currency)}` : "مشمول في السعر"}</span>
+                <span className="zone-fee">{deliveryIncluded ? (offer ? "مشمول في العرض" : "مشمول في السعر") : z.feeCents ? `+ ${money(z.feeCents, p.currency)}` : "مشمول في السعر"}</span>
               </label>
             ))}
           </div>
@@ -522,7 +524,7 @@ export function OrderForm(p: Props) {
         </div>
         <div>
           <span>التوصيل</span>
-          <span>{offer?.includesDelivery ? "مشمول في العرض" : !zone ? "اختر المنطقة" : fee === 0 ? (zoneFeeCents === 0 ? "مشمول في السعر" : "مجاني لهذا الطلب") : money(fee, p.currency)}</span>
+          <span>{deliveryIncluded ? (offer ? "مشمول في العرض" : "مشمول في السعر") : !zone ? "اختر المنطقة" : fee === 0 ? (zoneFeeCents === 0 ? "مشمول في السعر" : "مجاني لهذا الطلب") : money(fee, p.currency)}</span>
         </div>
         <div className="summary-total">
           <span>الإجمالي عند الاستلام</span>

@@ -26,6 +26,11 @@ export default async function RackPage() {
               <span aria-hidden />
               إظهار المنشر في المتجر
             </label>
+            <label className="switch">
+              <input type="checkbox" name="includesDelivery" defaultChecked={r.includesDelivery} />
+              <span aria-hidden />
+              السعر شامل التوصيل (للداخل والضفة)
+            </label>
           </div>
           <div className="grid-3">
             <Field name="price" label="السعر (₪)" hint="الطلبات على المنشر تبقى مغلقة ما دام السعر 0.">

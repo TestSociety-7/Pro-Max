@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTilt } from "./offers";
 
 /** Tells the order form which product the customer wants. */
@@ -147,131 +147,84 @@ export function RackSection({ r }: { r: RackView }) {
   );
 }
 
-/** The salad maker, now a simple card: picture, price, order button. */
-export function SaladSimple({ name, sub, price, badge, open }: { name: string; sub: string; price: string; badge: string; open: boolean }) {
+type Tab = { key: "rack" | "salad"; label: string; img: string };
+
+/** Two full product pages under one switch: the customer picks which product to see. */
+export function ProductPages({ initial, tabs, rack, salad }: { initial: "rack" | "salad"; tabs: Tab[]; rack: ReactNode; salad: ReactNode }) {
+  const [view, setView] = useState<"rack" | "salad">(initial);
+
+  // remember the choice in the address (?p=salad) so a reload or a shared link keeps it
+  useEffect(() => {
+    const q = new URLSearchParams(location.search).get("p");
+    const start = tabs.length && (q === "rack" || q === "salad") ? q : initial;
+    setView(start);
+    // let the order form mount first, then pick the same product there
+    const t = setTimeout(() => chooseItem(start), 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const pick = (k: "rack" | "salad") => {
+    if (k === view) return;
+    setView(k);
+    chooseItem(k);
+    const u = new URL(location.href);
+    u.searchParams.set("p", k);
+    u.hash = "";
+    history.replaceState(null, "", u);
+    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+  };
+
+  return (
+    <>
+      {tabs.length > 1 && (
+        <div className="page-tabs" role="tablist" aria-label="منتجاتنا">
+          {tabs.map((x) => (
+            <button key={x.key} type="button" role="tab" aria-selected={view === x.key} onClick={() => pick(x.key)}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={x.img} alt="" width={x.key === "rack" ? 54 : 22} height={36} />
+              {x.label}
+            </button>
+          ))}
+        </div>
+      )}
+      <div key={view} className="page-view">
+        {view === "rack" ? rack : salad}
+      </div>
+    </>
+  );
+}
+
+/** The other product, small, so it can be bought too without leaving the page. */
+export function MiniProduct({ item, name, price, note, img, open }: { item: "rack" | "salad"; name: string; price: string; note: string; img: string; open: boolean }) {
   const tilt = useTilt<HTMLDivElement>();
   return (
-    <section className="salad-simple" id="salad" aria-labelledby="salad-title">
-      <div ref={tilt} className="salad-card" data-reveal>
-        <div className="salad-pics" aria-hidden>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/product/cut-black-700.webp" alt="" width={140} height={252} loading="lazy" />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/product/cut-beige-700.webp" alt="" width={140} height={252} loading="lazy" />
-        </div>
-        <div className="salad-info">
-          {badge && <span className="salad-badge">{badge}</span>}
-          <h2 id="salad-title">{name}</h2>
-          {sub && <p className="muted">{sub}</p>}
-          <div className="salad-buy">
+    <section className="mini-wrap" aria-label={`اطلب أيضاً ${name}`}>
+      <div ref={tilt} className={`mini-card mini-${item}`} data-reveal>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={img} alt="" width={item === "rack" ? 150 : 70} height={item === "rack" ? 97 : 126} loading="lazy" />
+        <div className="mini-info">
+          <p className="eyebrow">اطلب أيضاً</p>
+          <h3>{name}</h3>
+          <div className="mini-buy">
             <strong>{price || "السعر يُعلن قريباً"}</strong>
-            {open && (
-              <a
-                className="btn btn-primary"
-                href="#order"
-                onClick={(e) => {
-                  e.preventDefault();
-                  chooseItem("salad");
-                  document.getElementById("order")?.scrollIntoView({ behavior: "smooth" });
-                }}
-              >
-                اطلب الآن
-              </a>
-            )}
+            {note && price && <span className="mini-note">{note}</span>}
           </div>
         </div>
-      </div>
-    </section>
-  );
-}
-
-/** Hero order button: picks the rack in the form, then scrolls there. */
-export function OrderRackButton({ label }: { label: string }) {
-  return (
-    <a
-      className="btn btn-primary btn-large"
-      href="#order"
-      onClick={(e) => {
-        e.preventDefault();
-        chooseItem("rack");
-        document.getElementById("order")?.scrollIntoView({ behavior: "smooth" });
-      }}
-    >
-      {label}
-    </a>
-  );
-}
-
-
-type HeroItem = { key: "rack" | "salad"; tab: string; name: string; lede: string; price: string; orderable: boolean };
-
-/** Hero with both products: a 3D swing between the rack and the salad maker. */
-export function HeroShowcase({ items, storeName, contactHref, rackName }: { items: HeroItem[]; storeName: string; contactHref: string; rackName: string }) {
-  const [active, setActive] = useState(0);
-  const it = items[active];
-  return (
-    <section className="hero hero-rack hero-duo" aria-labelledby="hero-title">
-      <div className="hero-stage">
-        <div className="duo-scene">
-          <span className="duo-ring" aria-hidden />
-          <span className="duo-ring r2" aria-hidden />
-          {items.map((x, i) => (
-            <div key={x.key} className={`duo-face${i === active ? " on" : i < active ? " before" : " after"}`} aria-hidden={i !== active}>
-              {x.key === "rack" ? (
-                <RackStage name={rackName} eager />
-              ) : (
-                <div className="duo-salad">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/product/cut-black-700.webp" srcSet="/product/cut-black-700.webp 1x, /product/cut-black.webp 2x" alt={`${x.name} باللون الأسود`} width={220} height={396} />
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/product/cut-beige-700.webp" srcSet="/product/cut-beige-700.webp 1x, /product/cut-beige.webp 2x" alt={`${x.name} باللون البيج`} width={220} height={396} />
-                </div>
-              )}
-            </div>
-          ))}
-          <span className="duo-floor" aria-hidden />
-        </div>
-      </div>
-      <div className="hero-copy">
-        {items.length > 1 && (
-          <div className="duo-tabs" role="tablist" aria-label="منتجاتنا">
-            {items.map((x, i) => (
-              <button key={x.key} type="button" role="tab" aria-selected={i === active} onClick={() => setActive(i)}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={x.key === "rack" ? "/product/rack/open-720.webp" : "/product/cut-black-700.webp"} alt="" width={x.key === "rack" ? 54 : 22} height={36} />
-                {x.tab}
-              </button>
-            ))}
-          </div>
+        {open && (
+          <a
+            className="btn btn-primary mini-btn"
+            href="#order"
+            onClick={(e) => {
+              e.preventDefault();
+              chooseItem(item);
+              document.getElementById("order")?.scrollIntoView({ behavior: "smooth" });
+            }}
+          >
+            اطلب
+          </a>
         )}
-        <div key={it.key} className="duo-copy">
-          <p className="eyebrow">
-            <span dir="ltr">{storeName}</span>
-          </p>
-          <h1 id="hero-title">{it.name}</h1>
-          {it.lede && <p className="lede">{it.lede}</p>}
-          <div className="price-row">
-            {it.price ? <span className="price">{it.price}</span> : <span className="price price-pending">السعر يُعلن قريباً</span>}
-            <span className="cod-pill">الدفع عند الاستلام</span>
-          </div>
-          <div className="hero-actions" id="hero-cta">
-            <a
-              className="btn btn-primary btn-large"
-              href="#order"
-              onClick={(e) => {
-                e.preventDefault();
-                chooseItem(it.key);
-                document.getElementById("order")?.scrollIntoView({ behavior: "smooth" });
-              }}
-            >
-              اطلب الآن
-            </a>
-          </div>
-        </div>
       </div>
-      <a href={it.key === "rack" ? "#rack" : "#salad"} className="scroll-cue" aria-label="اكتشف المزيد">
-        <span aria-hidden />
-      </a>
     </section>
   );
 }
