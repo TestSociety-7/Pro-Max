@@ -38,7 +38,8 @@ function whatsappOrderLink(number: string, lines: (string | null)[]): string {
   const digits = number.replace(/[^\d]/g, "");
   if (digits.length < 8) return "";
   const text = lines.filter((l): l is string => l !== null).join("\n");
-  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
+  // api.whatsapp.com keeps emoji intact; the wa.me redirect turns them into "�" on some phones
+  return `https://api.whatsapp.com/send?phone=${digits}&text=${encodeURIComponent(text)}`;
 }
 
 function str(fd: FormData, k: string): string {
@@ -174,14 +175,12 @@ export async function placeOrder(_prev: OrderState, fd: FormData): Promise<Order
       phone: order.phone,
       // Short format the owner asked for, e.g. "ماكنه سلطه بيج" then name / phone / town / address.
       whatsappUrl: !settings.whatsappCheckout ? "" : whatsappOrderLink(settings.whatsappNumber, [
+        // EXACT format the owner asked for (2026-11-23 and again 2026-11-26) — do not add lines
         `ماكنه سلطه ${order.color}`,
         `👤 الاسم: ${order.customerName}`,
         `📞 الهاتف: ${order.phone}`,
-        settings.westBankEnabled ? `🚚 التوصيل: ${zoneLabel}` : null,
-        `🏙️ المدينة / البلدة: ${input.area.trim()}`,
+        `🏙 المدينة / البلدة: ${input.area.trim()}${zone === "westbank" ? " (الضفة)" : ""}`,
         `📍 العنوان: ${order.address}`,
-        order.note ? `📝 ملاحظة: ${order.note}` : null,
-        offer ? `🎁 ${offer.title} · ${formatMoney(order.totalCents, order.currency)}` : null,
       ]),
     };
   } catch (err) {

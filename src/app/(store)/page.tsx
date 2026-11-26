@@ -67,7 +67,7 @@ export default async function Home() {
   }
   const phone = settings.supportPhone.trim();
   const whatsapp = settings.whatsappNumber.replace(/[^\d]/g, "");
-  const waLink = settings.showWhatsappButton && whatsapp.length >= 8 ? `https://wa.me/${whatsapp}?text=${encodeURIComponent(`مرحباً ${settings.storeName}، عندي سؤال`)}` : "";
+  const waLink = settings.showWhatsappButton && whatsapp.length >= 8 ? `https://api.whatsapp.com/send?phone=${whatsapp}&text=${encodeURIComponent(`مرحباً ${settings.storeName}، عندي سؤال`)}` : "";
   const accent = /^#[0-9a-fA-F]{6}$/.test(settings.accentColor) ? settings.accentColor : DEFAULT_SETTINGS.accentColor;
   const colorPhotoAlt: Record<string, string> = {
     black: `${product.name} باللون الأسود مع الأقراص والملحقات`,
