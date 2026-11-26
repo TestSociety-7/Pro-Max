@@ -10,6 +10,8 @@ import {
   cleanOffers,
   DEFAULT_OFFERS,
   type Offer,
+  DEFAULT_RACK,
+  type RackContent,
 } from "./content";
 
 // Storage adapter. Works with either:
@@ -232,6 +234,12 @@ export async function getProduct(): Promise<ProductContent> {
 }
 export async function saveProduct(p: ProductContent) {
   await writeContent("product", p);
+}
+export async function getRack(): Promise<RackContent> {
+  return withDefaults(DEFAULT_RACK, await readContent("rack"));
+}
+export async function saveRack(r: RackContent) {
+  await writeContent("rack", r);
 }
 
 /* ----------------------------- orders ---------------------------------- */

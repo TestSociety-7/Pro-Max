@@ -283,3 +283,45 @@ export function liveOffers(offers: Offer[], now = Date.now()): Offer[] {
 export function offerEndMs(endsAt: string): number {
   return Date.parse(`${endsAt}T23:59:59+02:00`);
 }
+
+/* --------------------------- second product ---------------------------- */
+
+/** The electric clothes-drying rack, sold next to the salad maker. Copy is the owner's own text. */
+export type RackContent = {
+  enabled: boolean; // shown on the store
+  name: string;
+  whatsappTitle: string; // first line of the WhatsApp order message
+  price: number; // major units; 0 = not set yet → section shows, ordering closed
+  availability: Availability;
+  maxPerOrder: number;
+  headline: string;
+  intro: string;
+  featuresTitle: string;
+  features: string[];
+  outro: string;
+};
+
+export const DEFAULT_RACK: RackContent = {
+  enabled: true,
+  name: "منشر الغسيل الكهربائي",
+  whatsappTitle: "منشر الغسيل الكهربائي",
+  price: 0,
+  availability: "in_stock",
+  maxPerOrder: 3,
+  headline: "🔥 ودّع نشر الغسيل التقليدي مع منشر الغسيل الكهربائي! 🔥",
+  intro: "وفّر وقتك وجهدك مع الحل العملي لتجفيف الملابس، بقوة 230 واط واستهلاك موفّر للكهرباء.",
+  featuresTitle: "المميزات:",
+  features: [
+    "⚡ قدرة تشغيل 230 واط موفّرة للكهرباء.",
+    "👕 يتحمّل من 15 إلى 20 كيلو من الملابس.",
+    "💧 مقاوم للماء.",
+    "🛠 هيكل ألمنيوم متين.",
+    "🌡 غطاء حراري يساعد على زيادة سرعة التجفيف.",
+    "🌧 مناسب للاستخدام داخل وخارج المنزل، ومصمم لتحمّل المطر.",
+  ],
+  outro: "✨ وداعاً لانتظار الغسيل لساعات طويلة!",
+};
+
+export function rackOrderable(r: RackContent, s: StoreSettings): boolean {
+  return r.enabled && r.availability === "in_stock" && r.price > 0 && isValidCurrency(s.currencyCode);
+}

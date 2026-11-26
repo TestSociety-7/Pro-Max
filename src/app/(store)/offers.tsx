@@ -22,7 +22,7 @@ export function chooseOffer(id: string) {
   window.dispatchEvent(new CustomEvent(OFFER_EVENT, { detail: id }));
 }
 
-function money(cents: number, currency: string) {
+export function money(cents: number, currency: string) {
   const amount = cents / 100;
   try {
     return new Intl.NumberFormat("ar-u-nu-latn", {
@@ -42,7 +42,7 @@ const PICS = [
 ];
 
 /** Pointer / device tilt for one 3D card. */
-function useTilt<T extends HTMLElement>() {
+export function useTilt<T extends HTMLElement>() {
   const ref = useRef<T>(null);
   useEffect(() => {
     const el = ref.current;
@@ -188,7 +188,7 @@ function OfferCard({ o, currency, featured }: { o: OfferView; currency: string; 
 export function OffersSection({ offers, currency }: { offers: OfferView[]; currency: string }) {
   if (!offers.length) return null;
   return (
-    <section className="offers" aria-labelledby="offers-title">
+    <section className="offers" id="offers" aria-labelledby="offers-title">
       <div className="offers-bg" aria-hidden />
       <div className="offers-head" data-reveal>
         <p className="eyebrow">{offers.some((o) => o.theme === "blackfriday") ? "Black Friday · الجمعة السوداء" : "عرض لفترة محدودة"}</p>

@@ -3,6 +3,7 @@ import { getProduct } from "@/lib/db";
 import { f } from "@/app/admin/fieldProps";
 import { AdminForm, Field } from "@/app/admin/AdminForm";
 import { updateProduct } from "@/app/admin/actions";
+import { ProductSwitch } from "./ProductSwitch";
 
 export default async function ProductPage() {
   await requireAdmin();
@@ -14,6 +15,7 @@ export default async function ProductPage() {
       <div className="page-head">
         <div><p className="eyebrow">المحتوى</p><h1>المنتج</h1></div>
       </div>
+      <ProductSwitch current="salad" />
       <p className="lead">
         كل ما تكتبه هنا يظهر في صفحة المتجر فور الحفظ.
       </p>

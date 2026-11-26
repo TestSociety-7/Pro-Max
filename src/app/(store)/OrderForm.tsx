@@ -7,6 +7,7 @@ import { validateOrder, type FieldErrors, type OrderInput } from "@/lib/validati
 import { CheckIcon, WhatsAppIcon } from "./icons";
 import { Celebration } from "./showcase";
 import { OFFER_EVENT, type OfferView } from "./offers";
+import { ITEM_EVENT } from "./rack";
 
 type Props = {
   /** Generated on the server per page view; retries of the same submit reuse it. */
@@ -21,6 +22,10 @@ type Props = {
   supportPhone: string;
   deliveryEstimate: string;
   offers: OfferView[];
+  /** the salad maker can be ordered */
+  saladOpen: boolean;
+  /** the drying rack, when it can be ordered */
+  rack: { name: string; priceCents: number; maxPerOrder: number } | null;
   /** after saving, the customer is sent to WhatsApp with the order message */
   whatsappCheckout: boolean;
 };
@@ -51,7 +56,18 @@ export function OrderForm(p: Props) {
   // when an offer is active it is the only choice, picked for the customer
   const [offerId, setOfferId] = useState(p.offers[0]?.id ?? "");
   const [unitColors, setUnitColors] = useState<string[]>([]);
-  const offer = p.offers.find((o) => o.id === offerId);
+  const [item, setItem] = useState<"salad" | "rack">(p.saladOpen || !p.rack ? "salad" : "rack");
+  const isRack = item === "rack" && !!p.rack;
+  const offer = isRack ? undefined : p.offers.find((o) => o.id === offerId);
+  const maxQty = isRack ? p.rack!.maxPerOrder : p.maxPerOrder;
+  const pickItem = (next: "salad" | "rack") => {
+    if (next === "rack" && !p.rack) return;
+    if (next === "salad" && !p.saladOpen) return;
+    setItem(next);
+    setQty(1);
+    setClientErrors({});
+    setTouched(false);
+  };
   const packRef = useRef<HTMLFieldSetElement>(null);
 
   // "Order this offer" buttons on the page pick it here
@@ -59,14 +75,24 @@ export function OrderForm(p: Props) {
     const on = (e: Event) => {
       const id = String((e as CustomEvent).detail ?? "");
       if (!p.offers.some((o) => o.id === id)) return;
+      pickItem("salad");
       setOfferId(id);
       packRef.current?.classList.remove("flash-pick");
       void packRef.current?.offsetWidth;
       packRef.current?.classList.add("flash-pick");
     };
+    const onItem = (e: Event) => {
+      const v = String((e as CustomEvent).detail ?? "");
+      if (v === "salad" || v === "rack") pickItem(v);
+    };
     window.addEventListener(OFFER_EVENT, on);
-    return () => window.removeEventListener(OFFER_EVENT, on);
-  }, [p.offers]);
+    window.addEventListener(ITEM_EVENT, onItem);
+    return () => {
+      window.removeEventListener(OFFER_EVENT, on);
+      window.removeEventListener(ITEM_EVENT, onItem);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p.offers, p.rack, p.saladOpen]);
   const key = p.idempotencyKey;
   const [clientErrors, setClientErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState(false);
@@ -96,7 +122,7 @@ export function OrderForm(p: Props) {
     }
   }, [state]);
 
-  const subtotal = offer ? offer.priceCents : p.unitCents * qty;
+  const subtotal = isRack ? p.rack!.priceCents * qty : offer ? offer.priceCents : p.unitCents * qty;
   const zoneFeeCents = p.zones.find((z) => z.key === zone)?.feeCents ?? 0;
   const fee =
     !zone || offer?.includesDelivery
@@ -124,9 +150,9 @@ export function OrderForm(p: Props) {
   }
 
   const opts = useMemo(
-    () => ({ maxPerOrder: offer ? offer.quantity : p.maxPerOrder, colors: available.map((c) => c.key) }),
+    () => ({ maxPerOrder: offer ? offer.quantity : maxQty, colors: isRack ? ["rack"] : available.map((c) => c.key) }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [p.maxPerOrder, p.colors, offer],
+    [maxQty, p.colors, offer, isRack],
   );
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -160,11 +186,12 @@ export function OrderForm(p: Props) {
           <span className="success-ring" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={color === "beige" ? "/product/cut-beige-700.webp" : "/product/cut-black-700.webp"}
-            srcSet={color === "beige" ? "/product/cut-beige-700.webp 1x, /product/cut-beige.webp 2x" : "/product/cut-black-700.webp 1x, /product/cut-black.webp 2x"}
+            src={isRack ? "/product/rack/open-720.webp" : color === "beige" ? "/product/cut-beige-700.webp" : "/product/cut-black-700.webp"}
+            srcSet={isRack ? undefined : color === "beige" ? "/product/cut-beige-700.webp 1x, /product/cut-beige.webp 2x" : "/product/cut-black-700.webp 1x, /product/cut-black.webp 2x"}
             alt=""
-            width={200}
-            height={360}
+            width={isRack ? 300 : 200}
+            height={isRack ? 193 : 360}
+            className={isRack ? "success-rack" : undefined}
           />
           <span className="success-badge">
             <CheckIcon />
@@ -190,10 +217,12 @@ export function OrderForm(p: Props) {
           رقم الطلب: <strong dir="ltr">{state.ref}</strong>
         </p>
         <dl className="success-summary">
-          <div>
-            <dt>اللون</dt>
-            <dd>{state.color}</dd>
-          </div>
+          {!isRack && (
+            <div>
+              <dt>اللون</dt>
+              <dd>{state.color}</dd>
+            </div>
+          )}
           <div>
             <dt>الكمية</dt>
             <dd>{state.quantity}</dd>
@@ -260,7 +289,29 @@ export function OrderForm(p: Props) {
         </label>
       </div>
 
-      {p.offers.length > 0 && (
+      {p.rack && p.saladOpen && (
+        <fieldset className="field">
+          <legend>اختر المنتج</legend>
+          <div className="item-options">
+            <label className="item-option">
+              <input type="radio" name="item_pick" value="salad" checked={!isRack} onChange={() => pickItem("salad")} />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/product/cut-black-700.webp" alt="" width={44} height={80} />
+              <span>ماكنة السلطة Pro Max</span>
+            </label>
+            <label className="item-option">
+              <input type="radio" name="item_pick" value="rack" checked={isRack} onChange={() => pickItem("rack")} />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/product/rack/open-720.webp" alt="" width={90} height={58} />
+              <span>{p.rack.name}</span>
+            </label>
+          </div>
+        </fieldset>
+      )}
+      <input type="hidden" name="item" value={isRack ? "rack" : "salad"} />
+      {isRack && <input type="hidden" name="color" value="rack" />}
+
+      {!isRack && p.offers.length > 0 && (
         <fieldset className="field" ref={packRef}>
           <legend>{p.offers.length > 1 ? "اختر العرض" : "العرض"}</legend>
           <div className="pack-options">
@@ -283,6 +334,7 @@ export function OrderForm(p: Props) {
         </fieldset>
       )}
 
+      {!isRack && (
       <fieldset className="field">
         <legend>{offer ? "لون كل قطعة" : "اللون"}</legend>
         <div className={offer ? "unit-color" : undefined}>
@@ -337,6 +389,7 @@ export function OrderForm(p: Props) {
           })}
         {err("color")}
       </fieldset>
+      )}
 
       {offer ? (
         <input type="hidden" name="quantity" value={offer.quantity} />
@@ -354,15 +407,15 @@ export function OrderForm(p: Props) {
               value={qty}
               onChange={(e) => {
                 const n = parseInt(e.target.value.replace(/\D/g, ""), 10);
-                setQty(Number.isFinite(n) ? Math.min(Math.max(n, 1), p.maxPerOrder) : 1);
+                setQty(Number.isFinite(n) ? Math.min(Math.max(n, 1), maxQty) : 1);
               }}
               {...a11y("quantity")}
             />
             <button
               type="button"
               aria-label="زيادة الكمية"
-              onClick={() => setQty((q) => Math.min(p.maxPerOrder, q + 1))}
-              disabled={qty >= p.maxPerOrder}
+              onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
+              disabled={qty >= maxQty}
             >
               +
             </button>
@@ -462,7 +515,7 @@ export function OrderForm(p: Props) {
 
       <div className="summary" aria-live="polite">
         <div>
-          <span>{offer ? offer.title : `السعر × ${qty}`}</span>
+          <span>{offer ? offer.title : isRack ? `${p.rack!.name} × ${qty}` : `السعر × ${qty}`}</span>
           <span>{money(subtotal, p.currency)}</span>
         </div>
         <div>

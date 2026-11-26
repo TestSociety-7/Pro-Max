@@ -1920,3 +1920,29 @@ html, body.admin { overflow-x: clip; max-width: 100%; }
 .security-card h2 { margin: 0 0 8px; font-size: 1.1rem; }
 .security-card p { margin: 0 0 10px; color: var(--muted); line-height: 1.8; }
 .test-push { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; } .test-push .a-msg { margin: 0; }
+
+/* which product the product page edits */
+.product-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin: 0 0 16px;
+  max-width: 420px;
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.product-switch a {
+  text-align: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--muted);
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+}
+.product-switch a[aria-current="page"] {
+  background: linear-gradient(180deg, var(--accent-2), var(--accent));
+  color: #1a0d05;
+}

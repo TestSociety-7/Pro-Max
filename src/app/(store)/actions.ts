@@ -1,10 +1,10 @@
 "use server";
 
 import { headers } from "next/headers";
-import { createOrder, getOffers, getProduct, getSettings } from "@/lib/db";
+import { createOrder, getOffers, getProduct, getRack, getSettings } from "@/lib/db";
 import { notifyAdmins } from "@/lib/push";
 import { after } from "next/server";
-import { DELIVERY_ZONES, deliveryFeeCents, formatMoney, isZone, liveOffers, orderingOpen, toCents } from "@/lib/content";
+import { DELIVERY_ZONES, deliveryFeeCents, formatMoney, isZone, liveOffers, orderingOpen, rackOrderable, toCents, type RackContent, type StoreSettings } from "@/lib/content";
 import { cleanPhone, normalizeDigits, validateOrder, type FieldErrors, type OrderInput } from "@/lib/validation";
 
 export type OrderState =
@@ -72,13 +72,15 @@ export async function placeOrder(_prev: OrderState, fd: FormData): Promise<Order
     quantity: Number(normalizeDigits(values.quantity)),
   };
 
-  let product, settings, offers;
+  let product, settings, offers, rack;
   try {
-    [product, settings, offers] = await Promise.all([getProduct(), getSettings(), getOffers()]);
+    [product, settings, offers, rack] = await Promise.all([getProduct(), getSettings(), getOffers(), getRack()]);
   } catch (err) {
     console.error("placeOrder: load failed", err);
     return { status: "error", message: "الخدمة غير متاحة حالياً. حاول بعد قليل.", values };
   }
+
+  if (str(fd, "item") === "rack") return placeRackOrder(input, values, idempotencyKey, rack, settings);
 
   if (!orderingOpen(product, settings)) {
     return { status: "error", message: "الطلب غير متاح حالياً. تواصل معنا للمساعدة.", values };
@@ -185,6 +187,81 @@ export async function placeOrder(_prev: OrderState, fd: FormData): Promise<Order
     };
   } catch (err) {
     console.error("placeOrder: insert failed", err);
+    return { status: "error", message: "تعذّر حفظ الطلب. حاول مرة أخرى بعد قليل.", values };
+  }
+}
+
+/** Order for the electric drying rack: one model, no colors, no offers. */
+async function placeRackOrder(
+  input: OrderInput,
+  values: Partial<Record<keyof OrderInput, string>>,
+  idempotencyKey: string,
+  rack: RackContent,
+  settings: StoreSettings,
+): Promise<OrderState> {
+  if (!rackOrderable(rack, settings)) {
+    return { status: "error", message: "طلب المنشر غير متاح حالياً. تواصل معنا للمساعدة.", values };
+  }
+  const fieldErrors = validateOrder({ ...input, color: "rack" }, { maxPerOrder: rack.maxPerOrder, colors: ["rack"] });
+  if (Object.keys(fieldErrors).length) {
+    return { status: "error", message: "يرجى تصحيح الحقول المشار إليها.", fieldErrors, values };
+  }
+  const h = await headers();
+  const ip = (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || "local";
+  if (throttled(ip)) {
+    return { status: "error", message: "طلبات كثيرة خلال وقت قصير. حاول بعد دقائق أو اتصل بنا.", values };
+  }
+
+  const zone = settings.westBankEnabled && isZone(input.zone) ? input.zone : "inside";
+  const zoneLabel = DELIVERY_ZONES.find((z) => z.key === zone)!.label;
+  const unit = toCents(rack.price);
+  const subtotal = unit * input.quantity;
+  const fee = deliveryFeeCents(settings, subtotal, zone);
+  try {
+    const { order, duplicate } = await createOrder({
+      idempotencyKey,
+      customerName: input.name.trim(),
+      phone: cleanPhone(input.phone),
+      address: input.address.trim(),
+      area: [zoneLabel, input.area.trim()].filter(Boolean).join(" · "),
+      note: input.note.trim(),
+      color: "—",
+      quantity: input.quantity,
+      unitPriceCents: unit,
+      deliveryFeeCents: fee,
+      totalCents: subtotal + fee,
+      currency: settings.currencyCode,
+      productName: rack.name,
+    });
+    if (!duplicate) {
+      after(() =>
+        notifyAdmins({
+          title: `🛒 طلب جديد ${order.ref} · ${formatMoney(order.totalCents, order.currency)}`,
+          body: [`${order.customerName} · ${order.phone}`, `${order.quantity} × ${rack.name}`, order.area].join("\n"),
+          url: `/admin/orders/${order.id}`,
+          tag: order.ref,
+        }),
+      );
+    }
+    return {
+      status: "success",
+      ref: order.ref,
+      total: formatMoney(order.totalCents, order.currency),
+      quantity: order.quantity,
+      color: order.color,
+      name: order.customerName,
+      phone: order.phone,
+      // same five lines as the salad maker, with the rack's name on the first line
+      whatsappUrl: !settings.whatsappCheckout ? "" : whatsappOrderLink(settings.whatsappNumber, [
+        input.quantity > 1 ? `${rack.whatsappTitle} × ${input.quantity}` : rack.whatsappTitle,
+        `👤 الاسم: ${order.customerName}`,
+        `📞 الهاتف: ${order.phone}`,
+        `🏙 المدينة / البلدة: ${input.area.trim()}`,
+        `📍 العنوان: ${order.address}`,
+      ]),
+    };
+  } catch (err) {
+    console.error("placeOrder: rack insert failed", err);
     return { status: "error", message: "تعذّر حفظ الطلب. حاول مرة أخرى بعد قليل.", values };
   }
 }

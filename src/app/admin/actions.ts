@@ -27,6 +27,8 @@ import {
   saveSettings,
   tooManyLoginFailures,
   updateOrderStatus,
+  getRack,
+  saveRack,
 } from "@/lib/db";
 import {
   cleanOffers,
@@ -37,6 +39,7 @@ import {
   type ProductContent,
   type StoreSettings,
   formatMoney,
+  type RackContent,
 } from "@/lib/content";
 import { notifyAdmins, vapidPublicKey } from "@/lib/push";
 
@@ -176,6 +179,30 @@ export async function updateProduct(_prev: FormState, fd: FormData): Promise<For
   await saveProduct(next);
   revalidatePath("/", "layout");
   return { ok: true, message: "تم حفظ المنتج وتحديث صفحة المتجر." };
+}
+
+export async function updateRack(_prev: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  const errors: Record<string, string> = {};
+  const current = await getRack();
+  const availability = s(fd, "availability") as Availability;
+  const next: RackContent = {
+    enabled: fd.get("enabled") === "on",
+    name: s(fd, "name", 120) || current.name,
+    whatsappTitle: s(fd, "whatsappTitle", 120) || current.whatsappTitle,
+    price: num(fd, "price", errors),
+    availability: availability === "sold_out" ? "sold_out" : "in_stock",
+    maxPerOrder: num(fd, "maxPerOrder", errors, { min: 1, max: 50, int: true }) || 1,
+    headline: s(fd, "headline", 200),
+    intro: s(fd, "intro", 600),
+    featuresTitle: s(fd, "featuresTitle", 80),
+    features: lines(s(fd, "features", 3000)),
+    outro: s(fd, "outro", 300),
+  };
+  if (Object.keys(errors).length) return { message: "صحّح الحقول المحددة باللون الأحمر.", errors };
+  await saveRack(next);
+  revalidatePath("/", "layout");
+  return { ok: true, message: "تم حفظ المنشر وتحديث صفحة المتجر." };
 }
 
 /* ------------------------------- settings ------------------------------ */

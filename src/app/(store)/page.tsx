@@ -1,27 +1,43 @@
 import { randomUUID } from "node:crypto";
-import { getOffers, getProduct, getSettings } from "@/lib/db";
-import { DEFAULT_PRODUCT, DEFAULT_SETTINGS, DELIVERY_ZONES, formatMoney, liveOffers, offerEndMs, type Offer, orderingOpen, toCents, zoneFee } from "@/lib/content";
+import { getOffers, getProduct, getRack, getSettings } from "@/lib/db";
+import { DEFAULT_PRODUCT, DEFAULT_RACK, DEFAULT_SETTINGS, rackOrderable, DELIVERY_ZONES, formatMoney, liveOffers, offerEndMs, type Offer, orderingOpen, toCents, zoneFee } from "@/lib/content";
 import { ProductPicture } from "./ProductPicture";
 import { OrderForm } from "./OrderForm";
 import { ColorShowcase, RevealController, StickyOrder } from "./client";
 import { ProductStage } from "./stage/ProductStage";
 import { DiscRing, Spotlight } from "./showcase";
 import { OffersSection, type OfferView } from "./offers";
+import { ProductTiles, RackSection, type RackView } from "./rack";
 import { CallIcon, CashIcon, CheckIcon, PhoneIcon, TruckIcon, WhatsAppIcon } from "./icons";
 
 export default async function Home() {
   let product = DEFAULT_PRODUCT;
   let settings = DEFAULT_SETTINGS;
   let offers: Offer[] = [];
+  let rack = DEFAULT_RACK;
   let dbError = false;
   try {
-    [product, settings, offers] = await Promise.all([getProduct(), getSettings(), getOffers()]);
+    [product, settings, offers, rack] = await Promise.all([getProduct(), getSettings(), getOffers(), getRack()]);
   } catch (err) {
     console.error("storefront: could not load content:", (err as Error)?.message ?? err);
     dbError = true;
   }
 
-  const open = !dbError && orderingOpen(product, settings);
+  const saladOpen = !dbError && orderingOpen(product, settings);
+  const rackOpen = !dbError && rackOrderable(rack, settings);
+  const showRack = !dbError && rack.enabled;
+  // the order form is open when either product can be ordered
+  const open = saladOpen || rackOpen;
+  const rackView: RackView = {
+    name: rack.name,
+    priceCents: toCents(rack.price),
+    orderable: rackOpen,
+    headline: rack.headline,
+    intro: rack.intro,
+    featuresTitle: rack.featuresTitle,
+    features: rack.features,
+    outro: rack.outro,
+  };
   const priceSet = product.price > 0 && settings.currencyCode;
   // the admin can show a different "regular" price in the hero (e.g. price incl. delivery)
   const shownPrice = settings.displayPrice > 0 ? settings.displayPrice : product.price;
@@ -38,7 +54,7 @@ export default async function Home() {
       (settings.freeDeliveryFrom > 0
         ? `. مجاني للطلبات من ${formatMoney(toCents(settings.freeDeliveryFrom), settings.currencyCode)}`
         : "");
-  const offerViews: OfferView[] = open
+  const offerViews: OfferView[] = saladOpen
     ? liveOffers(offers).map((o) => ({
         id: o.id,
         title: o.title,
@@ -172,6 +188,8 @@ export default async function Home() {
           </section>
         )}
 
+        {showRack && <ProductTiles saladName={product.name} rackName={rack.name} saladHref={offerViews.length ? "#offers" : "#gallery-title"} />}
+
         <OffersSection offers={offerViews} currency={settings.currencyCode} />
 
         <Spotlight src="/product/cut-black.webp" alt={`${product.name} باللون الأسود من قريب`} />
@@ -195,6 +213,8 @@ export default async function Home() {
         </section>
 
         <DiscRing />
+
+        {showRack && <RackSection r={rackView} currency={settings.currencyCode} contactHref={waLink} />}
 
 
         {/* 4. Delivery & COD */}
@@ -328,6 +348,8 @@ export default async function Home() {
                 supportPhone={phone}
                 deliveryEstimate={settings.deliveryEstimate}
                 offers={offerViews}
+                saladOpen={saladOpen}
+                rack={rackOpen ? { name: rack.name, priceCents: toCents(rack.price), maxPerOrder: rack.maxPerOrder } : null}
                 whatsappCheckout={settings.whatsappCheckout && whatsapp.length >= 8}
               />
             )}
