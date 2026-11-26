@@ -179,7 +179,7 @@ export async function placeOrder(_prev: OrderState, fd: FormData): Promise<Order
         `ماكنه سلطه ${order.color}`,
         `👤 الاسم: ${order.customerName}`,
         `📞 الهاتف: ${order.phone}`,
-        `🏙 المدينة / البلدة: ${input.area.trim()}${zone === "westbank" ? " (الضفة)" : ""}`,
+        `🏙 المدينة / البلدة: ${input.area.trim()}`,
         `📍 العنوان: ${order.address}`,
       ]),
     };
