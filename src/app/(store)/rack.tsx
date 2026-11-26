@@ -255,23 +255,17 @@ export function HeroShowcase({ items, storeName, contactHref, rackName }: { item
             <span className="cod-pill">الدفع عند الاستلام</span>
           </div>
           <div className="hero-actions" id="hero-cta">
-            {it.orderable ? (
-              <a
-                className="btn btn-primary btn-large"
-                href="#order"
-                onClick={(e) => {
-                  e.preventDefault();
-                  chooseItem(it.key);
-                  document.getElementById("order")?.scrollIntoView({ behavior: "smooth" });
-                }}
-              >
-                اطلب الآن
-              </a>
-            ) : (
-              <a className="btn btn-primary btn-large" href={contactHref || "#order"}>
-                تواصل معنا للطلب
-              </a>
-            )}
+            <a
+              className="btn btn-primary btn-large"
+              href="#order"
+              onClick={(e) => {
+                e.preventDefault();
+                chooseItem(it.key);
+                document.getElementById("order")?.scrollIntoView({ behavior: "smooth" });
+              }}
+            >
+              اطلب الآن
+            </a>
           </div>
         </div>
       </div>
