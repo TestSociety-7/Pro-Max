@@ -56,7 +56,7 @@ export function OrderForm(p: Props) {
   // when an offer is active it is the only choice, picked for the customer
   const [offerId, setOfferId] = useState(p.offers[0]?.id ?? "");
   const [unitColors, setUnitColors] = useState<string[]>([]);
-  const [item, setItem] = useState<"salad" | "rack">(p.saladOpen || !p.rack ? "salad" : "rack");
+  const [item, setItem] = useState<"salad" | "rack">(p.rack ? "rack" : "salad");
   const isRack = item === "rack" && !!p.rack;
   const offer = isRack ? undefined : p.offers.find((o) => o.id === offerId);
   const maxQty = isRack ? p.rack!.maxPerOrder : p.maxPerOrder;
@@ -294,16 +294,16 @@ export function OrderForm(p: Props) {
           <legend>اختر المنتج</legend>
           <div className="item-options">
             <label className="item-option">
-              <input type="radio" name="item_pick" value="salad" checked={!isRack} onChange={() => pickItem("salad")} />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/product/cut-black-700.webp" alt="" width={44} height={80} />
-              <span>ماكنة السلطة Pro Max</span>
-            </label>
-            <label className="item-option">
               <input type="radio" name="item_pick" value="rack" checked={isRack} onChange={() => pickItem("rack")} />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/product/rack/open-720.webp" alt="" width={90} height={58} />
               <span>{p.rack.name}</span>
+            </label>
+            <label className="item-option">
+              <input type="radio" name="item_pick" value="salad" checked={!isRack} onChange={() => pickItem("salad")} />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/product/cut-black-700.webp" alt="" width={44} height={80} />
+              <span>ماكنة السلطة Pro Max</span>
             </label>
           </div>
         </fieldset>

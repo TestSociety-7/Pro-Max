@@ -2504,3 +2504,59 @@ html, body.store { overflow-x: clip; max-width: 100%; }
 .item-option:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); transform: translateY(-1px); }
 .item-option:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .success-3d img.success-rack { width: min(80%, 300px); height: auto; border-radius: 16px; }
+
+/* ------------------------- rack as the main product ------------------------- */
+.hero-rack .hero-stage {
+  display: grid;
+  place-items: center;
+  padding: 84px var(--gutter) 40px;
+  height: auto;
+  min-height: 0;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+.hero-rack .rack-stage { max-width: 640px; }
+.hero-rack .hero-copy { margin-top: 0; }
+@media (min-width: 960px) {
+  .hero-rack { grid-template-columns: 1.1fr 1fr; align-items: center; }
+  .hero-rack .hero-stage { order: 2; padding: 100px 32px 40px; }
+  .hero-rack .hero-copy { padding: 100px 48px 72px; }
+}
+.rack-video-wrap { display: grid; justify-items: center; gap: 10px; }
+@media (min-width: 960px) { .rack-grid:has(.rack-video-wrap) { grid-template-columns: 1.4fr 1fr; } }
+.order-thumb-rack { width: 120px; height: auto; border-radius: 12px; object-fit: cover; }
+
+.salad-simple { padding: clamp(40px, 7vw, 80px) var(--gutter); }
+.salad-card {
+  --rx: 0deg;
+  --ry: 0deg;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 18px;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 18px;
+  border-radius: 26px;
+  border: 1px solid var(--line-2);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015) 50%, rgba(0, 0, 0, 0.3));
+  box-shadow: 0 40px 80px -44px rgba(0, 0, 0, 0.9);
+  transform: perspective(1000px) rotateX(var(--rx)) rotateY(var(--ry));
+  transition: transform 0.5s var(--ease);
+}
+.salad-pics { display: flex; align-items: flex-end; }
+.salad-pics img { width: clamp(56px, 16vw, 110px); height: auto; filter: drop-shadow(0 16px 18px rgba(0, 0, 0, 0.6)); }
+.salad-pics img + img { margin-inline-start: -18px; }
+.salad-info h2 { margin: 0.1em 0 0.2em; font-size: clamp(1.25rem, 4.6vw, 1.8rem); line-height: 1.25; }
+.salad-info .muted { margin: 0; font-size: 0.92rem; }
+.salad-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+.salad-buy { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 12px; }
+.salad-buy strong { font-size: clamp(1.5rem, 6vw, 2rem); }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { money, useTilt } from "./offers";
+import { useTilt } from "./offers";
 
 /** Tells the order form which product the customer wants. */
 export const ITEM_EVENT = "promax:item";
@@ -31,12 +31,12 @@ function splitIcon(line: string): [string, string] {
   return m ? [m[1], m[2]] : ["", line];
 }
 
-export function RackSection({ r, currency, contactHref }: { r: RackView; currency: string; contactHref: string }) {
+/** 3D turntable for the rack: flips between the open and covered photos. Used in the hero. */
+export function RackStage({ name, eager = false }: { name: string; eager?: boolean }) {
   const tilt = useTilt<HTMLDivElement>();
   const [side, setSide] = useState(0);
   const paused = useRef(false);
 
-  // the stage flips between "open" and "covered" on its own, like a turntable
   useEffect(() => {
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const t = setInterval(() => {
@@ -46,72 +46,57 @@ export function RackSection({ r, currency, contactHref }: { r: RackView; currenc
   }, []);
 
   return (
+    <div className="rack-stage-wrap">
+      <div
+        ref={tilt}
+        className="rack-stage"
+        onPointerEnter={() => (paused.current = true)}
+        onPointerLeave={() => (paused.current = false)}
+        onClick={() => setSide((s) => (s + 1) % 2)}
+      >
+        <div className={`rack-flip${side ? " flipped" : ""}`}>
+          {SHOTS.map((s, i) => (
+            <figure key={s.src} className={`rack-face f${i}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={s.src}
+                srcSet={`${s.src} 720w, ${s.hi} 1400w`}
+                sizes="(min-width: 960px) 560px, 92vw"
+                alt={`${name}، ${s.label}`}
+                width={720}
+                height={464}
+                loading={eager ? "eager" : "lazy"}
+                fetchPriority={eager && i === 0 ? "high" : undefined}
+                decoding="async"
+              />
+              <figcaption>{s.label}</figcaption>
+            </figure>
+          ))}
+        </div>
+        <span className="rack-shine" aria-hidden />
+      </div>
+      <div className="rack-dots" role="group" aria-label="صور المنشر">
+        {SHOTS.map((s, i) => (
+          <button key={s.src} type="button" aria-pressed={side === i} onClick={() => setSide(i)}>
+            {s.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Details of the rack under the hero: the owner's text, features and the video. */
+export function RackSection({ r }: { r: RackView }) {
+  return (
     <section className="rack" id="rack" aria-labelledby="rack-title">
       <div className="rack-bg" aria-hidden />
-      <div className="rack-head" data-reveal>
-        <p className="eyebrow">منتج جديد</p>
-        <h2 id="rack-title">{r.name}</h2>
-      </div>
-
       <div className="rack-grid">
-        <div className="rack-stage-wrap" data-reveal>
-          <div
-            ref={tilt}
-            className="rack-stage"
-            onPointerEnter={() => (paused.current = true)}
-            onPointerLeave={() => (paused.current = false)}
-            onClick={() => setSide((s) => (s + 1) % 2)}
-          >
-            <div className={`rack-flip${side ? " flipped" : ""}`}>
-              {SHOTS.map((s, i) => (
-                <figure key={s.src} className={`rack-face f${i}`}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={s.src}
-                    srcSet={`${s.src} 720w, ${s.hi} 1400w`}
-                    sizes="(min-width: 960px) 520px, 92vw"
-                    alt={`${r.name}، ${s.label}`}
-                    width={720}
-                    height={464}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <figcaption>{s.label}</figcaption>
-                </figure>
-              ))}
-            </div>
-            <span className="rack-shine" aria-hidden />
-          </div>
-          <div className="rack-dots" role="group" aria-label="صور المنشر">
-            {SHOTS.map((s, i) => (
-              <button key={s.src} type="button" aria-pressed={side === i} onClick={() => setSide(i)}>
-                {s.label}
-              </button>
-            ))}
-          </div>
-          <video
-            className="rack-video"
-            src="/product/rack/video.mp4"
-            poster="/product/rack/video-poster.webp"
-            controls
-            playsInline
-            preload="none"
-            width={464}
-            height={832}
-            aria-label={`فيديو ${r.name}`}
-          />
-        </div>
-
         <div className="rack-copy">
           {r.headline && (
-            <h3 className="rack-headline" data-reveal>
+            <h2 className="rack-headline" id="rack-title" data-reveal>
               {r.headline}
-            </h3>
-          )}
-          {r.intro && (
-            <p className="rack-intro" data-reveal>
-              {r.intro}
-            </p>
+            </h2>
           )}
           {r.features.length > 0 && (
             <>
@@ -142,30 +127,56 @@ export function RackSection({ r, currency, contactHref }: { r: RackView; currenc
               {r.outro}
             </p>
           )}
+        </div>
+        <div className="rack-video-wrap" data-reveal>
+          <p className="eyebrow">شاهد المنشر</p>
+          <video
+            className="rack-video"
+            src="/product/rack/video.mp4"
+            poster="/product/rack/video-poster.webp"
+            controls
+            playsInline
+            preload="none"
+            width={464}
+            height={832}
+            aria-label={`فيديو ${r.name}`}
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
 
-          <div className="rack-buy" data-reveal>
-            <div className="rack-price">
-              {r.priceCents > 0 ? <strong>{money(r.priceCents, currency)}</strong> : <strong className="soon">السعر يُعلن قريباً</strong>}
-              <span className="rack-cod">الدفع عند الاستلام</span>
-            </div>
-            {r.orderable ? (
+/** The salad maker, now a simple card: picture, price, order button. */
+export function SaladSimple({ name, sub, price, badge, open }: { name: string; sub: string; price: string; badge: string; open: boolean }) {
+  const tilt = useTilt<HTMLDivElement>();
+  return (
+    <section className="salad-simple" id="salad" aria-labelledby="salad-title">
+      <div ref={tilt} className="salad-card" data-reveal>
+        <div className="salad-pics" aria-hidden>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/product/cut-black-700.webp" alt="" width={140} height={252} loading="lazy" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/product/cut-beige-700.webp" alt="" width={140} height={252} loading="lazy" />
+        </div>
+        <div className="salad-info">
+          {badge && <span className="salad-badge">{badge}</span>}
+          <h2 id="salad-title">{name}</h2>
+          {sub && <p className="muted">{sub}</p>}
+          <div className="salad-buy">
+            <strong>{price || "السعر يُعلن قريباً"}</strong>
+            {open && (
               <a
-                className="btn btn-primary btn-large btn-block"
+                className="btn btn-primary"
                 href="#order"
                 onClick={(e) => {
                   e.preventDefault();
-                  chooseItem("rack");
+                  chooseItem("salad");
                   document.getElementById("order")?.scrollIntoView({ behavior: "smooth" });
                 }}
               >
-                اطلب المنشر الآن
+                اطلب الآن
               </a>
-            ) : (
-              contactHref && (
-                <a className="btn btn-ghost btn-block" href={contactHref} target="_blank" rel="noopener noreferrer">
-                  اسألنا عن المنشر
-                </a>
-              )
             )}
           </div>
         </div>
@@ -174,20 +185,20 @@ export function RackSection({ r, currency, contactHref }: { r: RackView; currenc
   );
 }
 
-/** Two tiles under the hero so both products are seen straight away. */
-export function ProductTiles({ saladName, rackName, saladHref }: { saladName: string; rackName: string; saladHref: string }) {
+/** Hero order button: picks the rack in the form, then scrolls there. */
+export function OrderRackButton({ label }: { label: string }) {
   return (
-    <nav className="ptiles" aria-label="منتجاتنا">
-      <a href={saladHref} className="ptile">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/product/cut-black-700.webp" alt="" width={90} height={162} loading="lazy" />
-        <span>{saladName}</span>
-      </a>
-      <a href="#rack" className="ptile">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/product/rack/open-720.webp" alt="" width={140} height={90} loading="lazy" />
-        <span>{rackName}</span>
-      </a>
-    </nav>
+    <a
+      className="btn btn-primary btn-large"
+      href="#order"
+      onClick={(e) => {
+        e.preventDefault();
+        chooseItem("rack");
+        document.getElementById("order")?.scrollIntoView({ behavior: "smooth" });
+      }}
+    >
+      {label}
+    </a>
   );
 }
+

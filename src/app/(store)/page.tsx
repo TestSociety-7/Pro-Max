@@ -1,13 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { getOffers, getProduct, getRack, getSettings } from "@/lib/db";
 import { DEFAULT_PRODUCT, DEFAULT_RACK, DEFAULT_SETTINGS, rackOrderable, DELIVERY_ZONES, formatMoney, liveOffers, offerEndMs, type Offer, orderingOpen, toCents, zoneFee } from "@/lib/content";
-import { ProductPicture } from "./ProductPicture";
 import { OrderForm } from "./OrderForm";
-import { ColorShowcase, RevealController, StickyOrder } from "./client";
-import { ProductStage } from "./stage/ProductStage";
-import { DiscRing, Spotlight } from "./showcase";
-import { OffersSection, type OfferView } from "./offers";
-import { ProductTiles, RackSection, type RackView } from "./rack";
+import { RevealController, StickyOrder } from "./client";
+import { type OfferView } from "./offers";
+import { OrderRackButton, RackSection, RackStage, SaladSimple, type RackView } from "./rack";
 import { CallIcon, CashIcon, CheckIcon, PhoneIcon, TruckIcon, WhatsAppIcon } from "./icons";
 
 export default async function Home() {
@@ -28,6 +25,7 @@ export default async function Home() {
   const showRack = !dbError && rack.enabled;
   // the order form is open when either product can be ordered
   const open = saladOpen || rackOpen;
+  const rackPrice = rack.price > 0 && settings.currencyCode ? formatMoney(toCents(rack.price), settings.currencyCode) : "";
   const rackView: RackView = {
     name: rack.name,
     priceCents: toCents(rack.price),
@@ -42,10 +40,6 @@ export default async function Home() {
   // the admin can show a different "regular" price in the hero (e.g. price incl. delivery)
   const shownPrice = settings.displayPrice > 0 ? settings.displayPrice : product.price;
   let price = priceSet ? formatMoney(toCents(shownPrice), settings.currencyCode) : "";
-  let compare =
-    priceSet && product.compareAtPrice > shownPrice
-      ? formatMoney(toCents(product.compareAtPrice), settings.currencyCode)
-      : "";
   const zones = DELIVERY_ZONES.filter((z) => z.key === "inside" || settings.westBankEnabled).map((z) => ({ key: z.key, label: z.label, feeCents: zoneFee(settings, z.key) }));
   const feeText = !settings.currencyCode
     ? ""
@@ -73,22 +67,13 @@ export default async function Home() {
               (o.includesDelivery && !settings.priceIncludesDelivery ? toCents(settings.deliveryFee) : 0),
       }))
     : [];
-  // when an offer is on, the hero shows the same price as the offer card
+  // when an offer is on, the salad maker card shows the offer price
   const heroOffer = offerViews[0];
-  let priceLabel = settings.priceLabel.trim();
-  if (heroOffer) {
-    price = formatMoney(heroOffer.priceCents, settings.currencyCode);
-    compare = "";
-    priceLabel = ""; // just the price in the hero; the offer card says "مع التوصيل"
-  }
+  if (heroOffer) price = formatMoney(heroOffer.priceCents, settings.currencyCode);
   const phone = settings.supportPhone.trim();
   const whatsapp = settings.whatsappNumber.replace(/[^\d]/g, "");
   const waLink = settings.showWhatsappButton && whatsapp.length >= 8 ? `https://api.whatsapp.com/send?phone=${whatsapp}&text=${encodeURIComponent(`مرحباً ${settings.storeName}، عندي سؤال`)}` : "";
   const accent = /^#[0-9a-fA-F]{6}$/.test(settings.accentColor) ? settings.accentColor : DEFAULT_SETTINGS.accentColor;
-  const colorPhotoAlt: Record<string, string> = {
-    black: `${product.name} باللون الأسود مع الأقراص والملحقات`,
-    beige: `${product.name} باللون البيج مع الأقراص والملحقات`,
-  };
 
   return (
     <div style={{ ["--accent" as string]: accent }}>
@@ -120,42 +105,21 @@ export default async function Home() {
       </header>
 
       <main id="top">
-        {/* 1. Opening scene */}
-        <section className="hero" aria-labelledby="hero-title">
+        {/* 1. Opening scene: the drying rack is the main product */}
+        <section className="hero hero-rack" aria-labelledby="hero-title">
           <div className="hero-stage">
-            <ProductStage colors={product.colors} accent={accent} name={product.name} />
+            <RackStage name={rack.name} eager />
           </div>
           <div className="hero-copy">
             <p className="eyebrow">
-              <span dir="ltr">{settings.storeName}</span> <span aria-hidden>·</span> <span dir="ltr">{product.modelNumber}</span>
+              <span dir="ltr">{settings.storeName}</span>
             </p>
-            <h1 id="hero-title">
-              {product.headline.includes("7 في 1") ? (
-                <>
-                  <span className="h1-line">{product.headline.replace("7 في 1", "").trim()}</span>
-                  <span className="seven">
-                    7<small>في</small>1
-                  </span>
-                </>
-              ) : (
-                product.headline
-              )}
-            </h1>
-            {product.subheadline && <p className="lede">{product.subheadline}</p>}
+            <h1 id="hero-title">{rack.name}</h1>
+            {rack.intro && <p className="lede">{rack.intro}</p>}
 
             <div className="price-row">
-              {price ? (
-                <>
-                  <span className="price-block">
-                    {priceLabel && <small className="price-label">{priceLabel}</small>}
-                    <span className="price">{price}</span>
-                  </span>
-                  {compare && (
-                    <s className="compare" aria-label={`السعر السابق ${compare}`}>
-                      {compare}
-                    </s>
-                  )}
-                </>
+              {rackPrice ? (
+                <span className="price">{rackPrice}</span>
               ) : (
                 <span className="price price-pending">السعر يُعلن قريباً</span>
               )}
@@ -165,57 +129,23 @@ export default async function Home() {
             </div>
 
             <div className="hero-actions" id="hero-cta">
-              <a className="btn btn-primary btn-large" href="#order">
-                {open ? "اطلب الآن" : "تواصل معنا للطلب"}
-              </a>
-              {product.keyBenefit && <p className="key-benefit">{product.keyBenefit}</p>}
+              {rackOpen ? <OrderRackButton label="اطلب الآن" /> : (
+                <a className="btn btn-primary btn-large" href={waLink || "#order"}>
+                  تواصل معنا للطلب
+                </a>
+              )}
             </div>
-            {product.availability === "sold_out" && <p className="stock-note">نفدت الكمية حالياً.</p>}
+            {rack.availability === "sold_out" && <p className="stock-note">نفدت الكمية حالياً.</p>}
           </div>
-          <a href="#gallery-title" className="scroll-cue" aria-label="اكتشف المزيد">
+          <a href="#rack" className="scroll-cue" aria-label="اكتشف المزيد">
             <span aria-hidden />
           </a>
         </section>
 
-        {/* uses strip */}
-        {product.uses.length > 0 && (
-          <section className="uses" aria-label="ماذا تقطّع">
-            <ul>
-              {product.uses.map((u) => (
-                <li key={u}>{u}</li>
-              ))}
-            </ul>
-          </section>
-        )}
+        {showRack && <RackSection r={rackView} />}
 
-        {showRack && <ProductTiles saladName={product.name} rackName={rack.name} saladHref={offerViews.length ? "#offers" : "#gallery-title"} />}
-
-        <OffersSection offers={offerViews} currency={settings.currencyCode} />
-
-        <Spotlight src="/product/cut-black.webp" alt={`${product.name} باللون الأسود من قريب`} />
-
-        {/* 3. Cinematic presentation */}
-        <section className="gallery" aria-labelledby="gallery-title">
-          <div className="gallery-copy" data-reveal>
-            <p className="eyebrow">لونان مميزان</p>
-            <h2 id="gallery-title">اختر لون مطبخك.</h2>
-            <p className="gallery-text">صورتان حقيقيتان للجهاز مع الأقراص الأربعة وشبكة التقطيع. اختر اللون لتراه.</p>
-          </div>
-          <div data-reveal>
-            <ColorShowcase
-              colors={product.colors}
-              photos={{
-                black: <ProductPicture slug="black" sizes="(min-width: 960px) 45vw, 100vw" alt={colorPhotoAlt.black} />,
-                beige: <ProductPicture slug="beige" sizes="(min-width: 960px) 45vw, 100vw" alt={colorPhotoAlt.beige} />,
-              }}
-            />
-          </div>
-        </section>
-
-        <DiscRing />
-
-        {showRack && <RackSection r={rackView} currency={settings.currencyCode} contactHref={waLink} />}
-
+        {/* the salad maker: simple, just to buy */}
+        <SaladSimple name={product.name} sub={product.subheadline} price={price} badge={offerViews[0]?.title ?? ""} open={saladOpen} />
 
         {/* 4. Delivery & COD */}
         <section className="delivery" aria-labelledby="delivery-title">
@@ -290,17 +220,6 @@ export default async function Home() {
             </div>
           </div>
 
-          {product.faqs.length > 0 && (
-            <div className="faq" data-reveal>
-              <h2 id="faq-title">أسئلة شائعة</h2>
-              {product.faqs.map((f) => (
-                <details key={f.q}>
-                  <summary>{f.q}</summary>
-                  <p>{f.a}</p>
-                </details>
-              ))}
-            </div>
-          )}
         </section>
 
         {/* 6. Order */}
@@ -309,10 +228,11 @@ export default async function Home() {
             <p className="eyebrow">اطلب الآن</p>
             <h2 id="order-title">أكمل طلبك</h2>
             <div className="order-product">
-              <ProductPicture slug="duo" sizes="120px" alt="" className="order-thumb" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/product/rack/open-720.webp" alt="" width={120} height={77} className="order-thumb order-thumb-rack" />
               <div>
-                <strong>{product.name}</strong>
-                <span>{price || "السعر يُعلن قريباً"}</span>
+                <strong>{rack.name}</strong>
+                <span>{rackPrice || "السعر يُعلن قريباً"}</span>
               </div>
             </div>
             <ul className="order-points">
@@ -382,7 +302,7 @@ export default async function Home() {
         </a>
       )}
 
-      <StickyOrder price={price || "اطلب الآن"} open={open} />
+      <StickyOrder price={rackPrice || price || "اطلب الآن"} open={open} />
     </div>
   );
 }
