@@ -326,6 +326,17 @@ export const DEFAULT_RACK: RackContent = {
   outro: "✨ وداعاً لانتظار الغسيل لساعات طويلة!",
 };
 
+/** Price of each rack after the first: when the price includes delivery, delivery (inside fee) is charged once per order. */
+export function rackExtraUnitCents(r: RackContent, s: StoreSettings): number {
+  const unit = toCents(r.price);
+  return r.includesDelivery ? Math.max(0, unit - toCents(s.deliveryFee)) : unit;
+}
+
+/** Racks subtotal: the first at the full price, each extra one at rackExtraUnitCents. */
+export function rackSubtotalCents(r: RackContent, s: StoreSettings, qty: number): number {
+  return toCents(r.price) + rackExtraUnitCents(r, s) * Math.max(0, qty - 1);
+}
+
 export function rackOrderable(r: RackContent, s: StoreSettings): boolean {
   return r.enabled && r.availability === "in_stock" && r.price > 0 && isValidCurrency(s.currencyCode);
 }

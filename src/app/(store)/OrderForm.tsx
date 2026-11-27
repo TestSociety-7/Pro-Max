@@ -25,7 +25,7 @@ type Props = {
   /** the salad maker can be ordered */
   saladOpen: boolean;
   /** the drying rack, when it can be ordered */
-  rack: { name: string; priceCents: number; maxPerOrder: number; orderable: boolean; includesDelivery: boolean } | null;
+  rack: { name: string; priceCents: number; extraCents: number; maxPerOrder: number; orderable: boolean; includesDelivery: boolean } | null;
   /** after saving, the customer is sent to WhatsApp with the order message */
   whatsappCheckout: boolean;
   /** rack + salad maker together at one price, when it is on */
@@ -126,7 +126,7 @@ export function OrderForm(p: Props) {
     }
   }, [state]);
 
-  const subtotal = isBundle ? p.bundle!.priceCents : isRack ? p.rack!.priceCents * qty : offer ? offer.priceCents : p.unitCents * qty;
+  const subtotal = isBundle ? p.bundle!.priceCents : isRack ? p.rack!.priceCents + p.rack!.extraCents * (qty - 1) : offer ? offer.priceCents : p.unitCents * qty;
   const zoneFeeCents = p.zones.find((z) => z.key === zone)?.feeCents ?? 0;
   // offer or rack whose price already covers delivery everywhere
   const deliveryIncluded = isBundle ? p.bundle!.includesDelivery : isRack ? p.rack!.includesDelivery : !!offer?.includesDelivery;

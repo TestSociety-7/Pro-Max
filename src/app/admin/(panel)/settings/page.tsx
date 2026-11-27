@@ -48,11 +48,6 @@ export default async function SettingsPage() {
             </Field>
             <div className="a-field toggles">
               <label className="switch">
-                <input type="checkbox" name="showWhatsappButton" defaultChecked={s.showWhatsappButton} />
-                <span aria-hidden />
-                زر واتساب العائم في المتجر (للتواصل في أي وقت)
-              </label>
-              <label className="switch">
                 <input type="checkbox" name="whatsappCheckout" defaultChecked={s.whatsappCheckout} />
                 <span aria-hidden />
                 بعد الطلب افتح واتساب برسالة الطلب إليّ

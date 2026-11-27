@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { getBundle, getOffers, getProduct, getRack, getSettings } from "@/lib/db";
-import { bundleLive, DEFAULT_BUNDLE, DEFAULT_PRODUCT, DEFAULT_RACK, DEFAULT_SETTINGS, rackOrderable, DELIVERY_ZONES, formatMoney, liveOffers, offerEndMs, type Offer, orderingOpen, toCents, zoneFee } from "@/lib/content";
+import { bundleLive, DEFAULT_BUNDLE, DEFAULT_PRODUCT, DEFAULT_RACK, DEFAULT_SETTINGS, rackExtraUnitCents, rackOrderable, DELIVERY_ZONES, formatMoney, liveOffers, offerEndMs, type Offer, orderingOpen, toCents, zoneFee } from "@/lib/content";
 import { OrderForm } from "./OrderForm";
 import { ColorShowcase, RevealController, StickyOrder } from "./client";
 import { ProductPicture } from "./ProductPicture";
@@ -8,7 +8,7 @@ import { ProductStage } from "./stage/ProductStage";
 import { DiscRing, Spotlight, type Callout } from "./showcase";
 import { BundleSection, OffersSection, type BundleView, type OfferView } from "./offers";
 import { MiniProduct, ProductPages, RackGallery, RackSection, RackTurntable, ShareButton, type RackView } from "./rack";
-import { CallIcon, CashIcon, CheckIcon, PhoneIcon, TruckIcon, WhatsAppIcon } from "./icons";
+import { CallIcon, CashIcon, CheckIcon, PhoneIcon, TruckIcon } from "./icons";
 
 // close-ups on the rack, using the owner's own feature lines
 const RACK_CALLOUTS: Callout[] = [
@@ -109,7 +109,6 @@ export default async function Home() {
   };
   const phone = settings.supportPhone.trim();
   const whatsapp = settings.whatsappNumber.replace(/[^\d]/g, "");
-  const waLink = settings.showWhatsappButton && whatsapp.length >= 8 ? `https://api.whatsapp.com/send?phone=${whatsapp}&text=${encodeURIComponent(`مرحباً ${settings.storeName}، عندي سؤال`)}` : "";
   const accent = /^#[0-9a-fA-F]{6}$/.test(settings.accentColor) ? settings.accentColor : DEFAULT_SETTINGS.accentColor;
 
   return (
@@ -400,7 +399,7 @@ export default async function Home() {
                 deliveryEstimate={settings.deliveryEstimate}
                 offers={offerViews}
                 saladOpen={saladOpen}
-                rack={showRack ? { name: rack.name, priceCents: toCents(rack.price), maxPerOrder: rack.maxPerOrder, orderable: rackOpen, includesDelivery: rack.includesDelivery } : null}
+                rack={showRack ? { name: rack.name, priceCents: toCents(rack.price), extraCents: rackExtraUnitCents(rack, settings), maxPerOrder: rack.maxPerOrder, orderable: rackOpen, includesDelivery: rack.includesDelivery } : null}
                 whatsappCheckout={settings.whatsappCheckout && whatsapp.length >= 8}
                 bundle={bundleView ? { title: bundleView.title, priceCents: bundleView.priceCents, includesDelivery: bundleView.includesDelivery } : null}
               />
@@ -426,13 +425,6 @@ export default async function Home() {
       </footer>
 
 
-      {waLink && (
-        <a className="wa-float" href={waLink} target="_blank" rel="noopener noreferrer" aria-label="راسلنا على واتساب">
-          <span className="wa-float-ring" aria-hidden />
-          <WhatsAppIcon />
-          <span className="wa-float-text">راسلنا</span>
-        </a>
-      )}
 
     </div>
   );

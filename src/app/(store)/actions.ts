@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { createOrder, getBundle, getOffers, getProduct, getRack, getSettings } from "@/lib/db";
 import { notifyAdmins } from "@/lib/push";
 import { after } from "next/server";
-import { bundleLive, DELIVERY_ZONES, deliveryFeeCents, formatMoney, isZone, liveOffers, orderingOpen, rackOrderable, toCents, type RackContent, type StoreSettings } from "@/lib/content";
+import { bundleLive, DELIVERY_ZONES, deliveryFeeCents, formatMoney, isZone, liveOffers, orderingOpen, rackOrderable, rackSubtotalCents, toCents, type RackContent, type StoreSettings } from "@/lib/content";
 import { cleanPhone, normalizeDigits, validateOrder, type FieldErrors, type OrderInput } from "@/lib/validation";
 
 export type OrderState =
@@ -282,7 +282,8 @@ async function placeRackOrder(
   const zone = settings.westBankEnabled && isZone(input.zone) ? input.zone : "inside";
   const zoneLabel = DELIVERY_ZONES.find((z) => z.key === zone)!.label;
   const unit = toCents(rack.price);
-  const subtotal = unit * input.quantity;
+  // delivery is inside the price, so it is charged once: extra racks cost less
+  const subtotal = rackSubtotalCents(rack, settings, input.quantity);
   const fee = rack.includesDelivery ? 0 : deliveryFeeCents(settings, subtotal, zone);
   try {
     const { order, duplicate } = await createOrder({
