@@ -5,7 +5,7 @@ import { useTilt } from "./offers";
 
 /** Tells the order form which product the customer wants. */
 export const ITEM_EVENT = "promax:item";
-export function chooseItem(item: "salad" | "rack") {
+export function chooseItem(item: "salad" | "rack" | "bundle") {
   window.dispatchEvent(new CustomEvent(ITEM_EVENT, { detail: item }));
 }
 

@@ -202,3 +202,81 @@ export function OffersSection({ offers, currency }: { offers: OfferView[]; curre
     </section>
   );
 }
+
+/** The rack + salad maker bundle, shown on both product pages. */
+export type BundleView = {
+  title: string;
+  priceCents: number;
+  includesDelivery: boolean;
+  badge: string;
+  endsAt: number;
+  rackName: string;
+};
+
+export function BundleSection({ b, currency }: { b: BundleView; currency: string }) {
+  const ref = useTilt<HTMLElement>();
+  const pick = () => {
+    window.dispatchEvent(new CustomEvent("promax:item", { detail: "bundle" }));
+    document.getElementById("order")?.scrollIntoView({ behavior: "smooth" });
+  };
+  return (
+    <section className="offers" aria-labelledby="bundle-title">
+      <div className="offers-bg" aria-hidden />
+      <div className="offers-head" data-reveal>
+        <p className="eyebrow">Black Friday · الجمعة السوداء</p>
+        <h2 id="bundle-title">{b.title}</h2>
+      </div>
+      <div className="offers-grid c1">
+        <article
+          ref={ref}
+          onClick={(e) => {
+            if ((e.target as HTMLElement).closest("a")) return;
+            pick();
+          }}
+          className="offer3d featured bf bundle3d"
+          data-reveal
+        >
+          <div className="offer3d-inner">
+            <span className="offer3d-glow" aria-hidden />
+            {b.badge && <span className="offer3d-ribbon">{b.badge}</span>}
+            <div className="bf-title" aria-hidden>
+              <span>BLACK</span>
+              <span>FRIDAY</span>
+            </div>
+            <div className="offer3d-stage bundle-stage" aria-hidden>
+              <span className="offer3d-orbit" />
+              <span className="offer3d-orbit o2" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="bundle-rack" src="/product/rack/cut-open-700.webp" srcSet="/product/rack/cut-open-700.webp 1x, /product/rack/cut-open-1400.webp 2x" alt="" width={300} height={193} loading="lazy" decoding="async" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="bundle-salad" src="/product/cut-black-700.webp" srcSet="/product/cut-black-700.webp 1x, /product/cut-black.webp 2x" alt="" width={180} height={324} loading="lazy" decoding="async" />
+              <span className="offer3d-qty">+</span>
+            </div>
+            <div className="offer3d-copy">
+              <h3>{b.rackName} + ماكنة السلطة Pro Max</h3>
+              <p className="offer3d-sub">القطعتان معاً بسعر واحد{b.includesDelivery ? " مع التوصيل لباب البيت" : ""}.</p>
+              <div className="offer3d-price">
+                <strong>{money(b.priceCents, currency)}</strong>
+              </div>
+              {b.endsAt > 0 && <Countdown to={b.endsAt} />}
+              <div className="offer3d-chips">
+                {b.includesDelivery && <span className="chip-hot">التوصيل مجاني</span>}
+                <span>الدفع عند الاستلام</span>
+              </div>
+              <a
+                href="#order"
+                className="btn btn-primary btn-block offer3d-cta"
+                onClick={(e) => {
+                  e.preventDefault();
+                  pick();
+                }}
+              >
+                اطلب العرض الآن
+              </a>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+  );
+}

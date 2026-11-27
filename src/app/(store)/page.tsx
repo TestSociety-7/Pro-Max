@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { getOffers, getProduct, getRack, getSettings } from "@/lib/db";
-import { DEFAULT_PRODUCT, DEFAULT_RACK, DEFAULT_SETTINGS, rackOrderable, DELIVERY_ZONES, formatMoney, liveOffers, offerEndMs, type Offer, orderingOpen, toCents, zoneFee } from "@/lib/content";
+import { getBundle, getOffers, getProduct, getRack, getSettings } from "@/lib/db";
+import { bundleLive, DEFAULT_BUNDLE, DEFAULT_PRODUCT, DEFAULT_RACK, DEFAULT_SETTINGS, rackOrderable, DELIVERY_ZONES, formatMoney, liveOffers, offerEndMs, type Offer, orderingOpen, toCents, zoneFee } from "@/lib/content";
 import { OrderForm } from "./OrderForm";
 import { ColorShowcase, RevealController, StickyOrder } from "./client";
 import { ProductPicture } from "./ProductPicture";
 import { ProductStage } from "./stage/ProductStage";
 import { DiscRing, Spotlight, type Callout } from "./showcase";
-import { OffersSection, type OfferView } from "./offers";
+import { BundleSection, OffersSection, type BundleView, type OfferView } from "./offers";
 import { MiniProduct, ProductPages, RackGallery, RackSection, RackTurntable, ShareButton, type RackView } from "./rack";
 import { CallIcon, CashIcon, CheckIcon, PhoneIcon, TruckIcon, WhatsAppIcon } from "./icons";
 
@@ -23,9 +23,10 @@ export default async function Home() {
   let settings = DEFAULT_SETTINGS;
   let offers: Offer[] = [];
   let rack = DEFAULT_RACK;
+  let bundle = DEFAULT_BUNDLE;
   let dbError = false;
   try {
-    [product, settings, offers, rack] = await Promise.all([getProduct(), getSettings(), getOffers(), getRack()]);
+    [product, settings, offers, rack, bundle] = await Promise.all([getProduct(), getSettings(), getOffers(), getRack(), getBundle()]);
   } catch (err) {
     console.error("storefront: could not load content:", (err as Error)?.message ?? err);
     dbError = true;
@@ -36,6 +37,18 @@ export default async function Home() {
   const showRack = !dbError && rack.enabled;
   // the order form is open when either product can be ordered
   const open = saladOpen || rackOpen;
+  // rack + salad maker together, only when both can be ordered
+  const bundleView: BundleView | null =
+    saladOpen && rackOpen && bundleLive(bundle)
+      ? {
+          title: bundle.title,
+          priceCents: toCents(bundle.price),
+          includesDelivery: bundle.includesDelivery,
+          badge: bundle.badge,
+          endsAt: bundle.endsAt ? offerEndMs(bundle.endsAt) : 0,
+          rackName: rack.name,
+        }
+      : null;
   const rackPrice = rack.price > 0 && settings.currencyCode ? formatMoney(toCents(rack.price), settings.currencyCode) : "";
   const rackView: RackView = {
     name: rack.name,
@@ -184,6 +197,8 @@ export default async function Home() {
 
         <RackSection r={rackView} />
 
+        {bundleView && <BundleSection b={bundleView} currency={settings.currencyCode} />}
+
         <RackGallery name={rack.name} />
               <MiniProduct item="salad" name={product.name} price={price} note={heroOffer ? heroOffer.title : ""} img="/product/cut-black-700.webp" open={saladOpen} />
               <StickyOrder price={rackPrice || "اطلب الآن"} open={open} />
@@ -261,6 +276,8 @@ export default async function Home() {
         )}
 
         <OffersSection offers={offerViews} currency={settings.currencyCode} />
+
+        {bundleView && <BundleSection b={bundleView} currency={settings.currencyCode} />}
 
         <Spotlight src="/product/cut-black.webp" alt={`${product.name} باللون الأسود من قريب`} />
 
@@ -385,6 +402,7 @@ export default async function Home() {
                 saladOpen={saladOpen}
                 rack={showRack ? { name: rack.name, priceCents: toCents(rack.price), maxPerOrder: rack.maxPerOrder, orderable: rackOpen, includesDelivery: rack.includesDelivery } : null}
                 whatsappCheckout={settings.whatsappCheckout && whatsapp.length >= 8}
+                bundle={bundleView ? { title: bundleView.title, priceCents: bundleView.priceCents, includesDelivery: bundleView.includesDelivery } : null}
               />
             )}
           </div>

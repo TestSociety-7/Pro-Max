@@ -1,10 +1,10 @@
 "use server";
 
 import { headers } from "next/headers";
-import { createOrder, getOffers, getProduct, getRack, getSettings } from "@/lib/db";
+import { createOrder, getBundle, getOffers, getProduct, getRack, getSettings } from "@/lib/db";
 import { notifyAdmins } from "@/lib/push";
 import { after } from "next/server";
-import { DELIVERY_ZONES, deliveryFeeCents, formatMoney, isZone, liveOffers, orderingOpen, rackOrderable, toCents, type RackContent, type StoreSettings } from "@/lib/content";
+import { bundleLive, DELIVERY_ZONES, deliveryFeeCents, formatMoney, isZone, liveOffers, orderingOpen, rackOrderable, toCents, type RackContent, type StoreSettings } from "@/lib/content";
 import { cleanPhone, normalizeDigits, validateOrder, type FieldErrors, type OrderInput } from "@/lib/validation";
 
 export type OrderState =
@@ -72,9 +72,9 @@ export async function placeOrder(_prev: OrderState, fd: FormData): Promise<Order
     quantity: Number(normalizeDigits(values.quantity)),
   };
 
-  let product, settings, offers, rack;
+  let product, settings, offers, rack, bundle;
   try {
-    [product, settings, offers, rack] = await Promise.all([getProduct(), getSettings(), getOffers(), getRack()]);
+    [product, settings, offers, rack, bundle] = await Promise.all([getProduct(), getSettings(), getOffers(), getRack(), getBundle()]);
   } catch (err) {
     console.error("placeOrder: load failed", err);
     return { status: "error", message: "الخدمة غير متاحة حالياً. حاول بعد قليل.", values };
@@ -87,6 +87,71 @@ export async function placeOrder(_prev: OrderState, fd: FormData): Promise<Order
   }
 
   const availableColors = product.colors.filter((c) => c.available);
+  if (str(fd, "item") === "bundle") {
+    if (!rackOrderable(rack, settings) || !bundleLive(bundle)) {
+      return { status: "error", message: "هذا العرض لم يعد متاحاً. اختر من جديد.", values };
+    }
+    const errs = validateOrder({ ...input, quantity: 1 }, { maxPerOrder: 1, colors: availableColors.map((c) => c.key) });
+    if (Object.keys(errs).length) return { status: "error", message: "يرجى تصحيح الحقول المشار إليها.", fieldErrors: errs, values };
+    const h = await headers();
+    const ip = (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || "local";
+    if (throttled(ip)) return { status: "error", message: "طلبات كثيرة خلال وقت قصير. حاول بعد دقائق أو اتصل بنا.", values };
+    const zone = settings.westBankEnabled && isZone(input.zone) ? input.zone : "inside";
+    const zoneLabel = DELIVERY_ZONES.find((z) => z.key === zone)!.label;
+    const colorLabel = availableColors.find((c) => c.key === input.color)!.label;
+    const subtotal = toCents(bundle.price);
+    const fee = bundle.includesDelivery ? 0 : deliveryFeeCents(settings, subtotal, zone);
+    try {
+      const { order, duplicate } = await createOrder({
+        idempotencyKey,
+        customerName: input.name.trim(),
+        phone: cleanPhone(input.phone),
+        address: input.address.trim(),
+        area: [zoneLabel, input.area.trim()].filter(Boolean).join(" · "),
+        note: input.note.trim(),
+        color: colorLabel,
+        quantity: 1,
+        unitPriceCents: subtotal,
+        deliveryFeeCents: fee,
+        totalCents: subtotal + fee,
+        currency: settings.currencyCode,
+        productName: `${bundle.title} · ${rack.name} + ${product.name}`,
+      });
+      if (!duplicate) {
+        after(() =>
+          notifyAdmins({
+            title: `🛒 طلب جديد ${order.ref} · ${formatMoney(order.totalCents, order.currency)}`,
+            body: [`${order.customerName} · ${order.phone}`, `${rack.name} + ماكنة السلطة ${order.color}`, order.area].join("\n"),
+            url: `/admin/orders/${order.id}`,
+            tag: order.ref,
+          }),
+        );
+      }
+      return {
+        status: "success",
+        ref: order.ref,
+        total: formatMoney(order.totalCents, order.currency),
+        quantity: 1,
+        color: order.color,
+        name: order.customerName,
+        phone: order.phone,
+        // same format as the single products, both devices on the first line
+        whatsappUrl: !settings.whatsappCheckout ? "" : whatsappOrderLink(settings.whatsappNumber, [
+          `${rack.whatsappTitle} + ماكنه سلطه ${order.color}`,
+          `👤 الاسم: ${order.customerName}`,
+          `📞 الهاتف: ${order.phone}`,
+          `🏙 المدينة / البلدة: ${input.area.trim()}`,
+          `📍 العنوان: ${order.address}`,
+          `السعر : ${order.totalCents / 100} شامل التوصيل`,
+          zoneLabel,
+        ]),
+      };
+    } catch (err) {
+      console.error("placeOrder: bundle insert failed", err);
+      return { status: "error", message: "تعذّر حفظ الطلب. حاول مرة أخرى بعد قليل.", values };
+    }
+  }
+
   // An active offer always applies: the one the customer picked, or the first one.
   const live = liveOffers(offers);
   const offerId = str(fd, "offer") || live[0]?.id || "";
@@ -183,7 +248,8 @@ export async function placeOrder(_prev: OrderState, fd: FormData): Promise<Order
         `📞 الهاتف: ${order.phone}`,
         `🏙 المدينة / البلدة: ${input.area.trim()}`,
         `📍 العنوان: ${order.address}`,
-        `💰 السعر: ${order.totalCents / 100} ₪ شامل التوصيل`,
+        `السعر : ${order.totalCents / 100} شامل التوصيل`,
+        zoneLabel,
       ]),
     };
   } catch (err) {
@@ -259,7 +325,8 @@ async function placeRackOrder(
         `📞 الهاتف: ${order.phone}`,
         `🏙 المدينة / البلدة: ${input.area.trim()}`,
         `📍 العنوان: ${order.address}`,
-        `💰 السعر: ${order.totalCents / 100} ₪ شامل التوصيل`,
+        `السعر : ${order.totalCents / 100} شامل التوصيل`,
+        zoneLabel,
       ]),
     };
   } catch (err) {

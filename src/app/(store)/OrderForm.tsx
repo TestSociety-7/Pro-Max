@@ -28,6 +28,8 @@ type Props = {
   rack: { name: string; priceCents: number; maxPerOrder: number; orderable: boolean; includesDelivery: boolean } | null;
   /** after saving, the customer is sent to WhatsApp with the order message */
   whatsappCheckout: boolean;
+  /** rack + salad maker together at one price, when it is on */
+  bundle: { title: string; priceCents: number; includesDelivery: boolean } | null;
 };
 
 function money(cents: number, currency: string) {
@@ -56,11 +58,13 @@ export function OrderForm(p: Props) {
   // when an offer is active it is the only choice, picked for the customer
   const [offerId, setOfferId] = useState(p.offers[0]?.id ?? "");
   const [unitColors, setUnitColors] = useState<string[]>([]);
-  const [item, setItem] = useState<"salad" | "rack">(p.rack?.orderable || !p.saladOpen ? "rack" : "salad");
+  const [item, setItem] = useState<"salad" | "rack" | "bundle">(p.rack?.orderable || !p.saladOpen ? "rack" : "salad");
   const isRack = item === "rack" && !!p.rack?.orderable;
-  const offer = isRack ? undefined : p.offers.find((o) => o.id === offerId);
-  const maxQty = isRack ? p.rack!.maxPerOrder : p.maxPerOrder;
-  const pickItem = (next: "salad" | "rack") => {
+  const isBundle = item === "bundle" && !!p.bundle;
+  const offer = isRack || isBundle ? undefined : p.offers.find((o) => o.id === offerId);
+  const maxQty = isBundle ? 1 : isRack ? p.rack!.maxPerOrder : p.maxPerOrder;
+  const pickItem = (next: "salad" | "rack" | "bundle") => {
+    if (next === "bundle" && !p.bundle) return;
     if (next === "rack" && !p.rack?.orderable) return;
     if (next === "salad" && !p.saladOpen) return;
     setItem(next);
@@ -83,7 +87,7 @@ export function OrderForm(p: Props) {
     };
     const onItem = (e: Event) => {
       const v = String((e as CustomEvent).detail ?? "");
-      if (v === "salad" || v === "rack") pickItem(v);
+      if (v === "salad" || v === "rack" || v === "bundle") pickItem(v);
     };
     window.addEventListener(OFFER_EVENT, on);
     window.addEventListener(ITEM_EVENT, onItem);
@@ -92,7 +96,7 @@ export function OrderForm(p: Props) {
       window.removeEventListener(ITEM_EVENT, onItem);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p.offers, p.rack, p.saladOpen]);
+  }, [p.offers, p.rack, p.saladOpen, p.bundle]);
   const key = p.idempotencyKey;
   const [clientErrors, setClientErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState(false);
@@ -122,10 +126,10 @@ export function OrderForm(p: Props) {
     }
   }, [state]);
 
-  const subtotal = isRack ? p.rack!.priceCents * qty : offer ? offer.priceCents : p.unitCents * qty;
+  const subtotal = isBundle ? p.bundle!.priceCents : isRack ? p.rack!.priceCents * qty : offer ? offer.priceCents : p.unitCents * qty;
   const zoneFeeCents = p.zones.find((z) => z.key === zone)?.feeCents ?? 0;
   // offer or rack whose price already covers delivery everywhere
-  const deliveryIncluded = isRack ? p.rack!.includesDelivery : !!offer?.includesDelivery;
+  const deliveryIncluded = isBundle ? p.bundle!.includesDelivery : isRack ? p.rack!.includesDelivery : !!offer?.includesDelivery;
   const fee =
     !zone || deliveryIncluded
       ? 0
@@ -294,7 +298,7 @@ export function OrderForm(p: Props) {
       {p.rack && (
         <fieldset className="field">
           <legend>اختر المنتج</legend>
-          <div className="item-options">
+          <div className={`item-options${p.bundle ? " n3" : ""}`}>
             <label className="item-option">
               <input type="radio" name="item_pick" value="rack" checked={isRack} disabled={!p.rack.orderable} onChange={() => pickItem("rack")} />
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -303,19 +307,27 @@ export function OrderForm(p: Props) {
               <small className="item-price">{p.rack.orderable ? `${money(p.rack.priceCents, p.currency)}${p.rack.includesDelivery ? " مع التوصيل" : ""}` : "السعر يُعلن قريباً"}</small>
             </label>
             <label className="item-option">
-              <input type="radio" name="item_pick" value="salad" checked={!isRack} disabled={!p.saladOpen} onChange={() => pickItem("salad")} />
+              <input type="radio" name="item_pick" value="salad" checked={!isRack && !isBundle} disabled={!p.saladOpen} onChange={() => pickItem("salad")} />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/product/cut-black-700.webp" alt="" width={44} height={80} />
               <span>ماكنة السلطة Pro Max</span>
               <small className="item-price">{p.offers[0] ? money(p.offers[0].priceCents, p.currency) : money(p.unitCents, p.currency)}</small>
             </label>
+            {p.bundle && (
+              <label className="item-option item-bundle">
+                <input type="radio" name="item_pick" value="bundle" checked={isBundle} onChange={() => pickItem("bundle")} />
+                <span className="pack-tag">Black Friday</span>
+                <span>{p.bundle.title}</span>
+                <small className="item-price">{`${money(p.bundle.priceCents, p.currency)}${p.bundle.includesDelivery ? " مع التوصيل" : ""}`}</small>
+              </label>
+            )}
           </div>
         </fieldset>
       )}
-      <input type="hidden" name="item" value={isRack ? "rack" : "salad"} />
+      <input type="hidden" name="item" value={isBundle ? "bundle" : isRack ? "rack" : "salad"} />
       {isRack && <input type="hidden" name="color" value="rack" />}
 
-      {!isRack && p.offers.length > 0 && (
+      {!isRack && !isBundle && p.offers.length > 0 && (
         <fieldset className="field" ref={packRef}>
           <legend>{p.offers.length > 1 ? "اختر العرض" : "العرض"}</legend>
           <div className="pack-options">
@@ -340,7 +352,7 @@ export function OrderForm(p: Props) {
 
       {!isRack && (
       <fieldset className="field">
-        <legend>{offer ? "لون كل قطعة" : "اللون"}</legend>
+        <legend>{offer ? "لون كل قطعة" : isBundle ? "لون ماكنة السلطة" : "اللون"}</legend>
         <div className={offer ? "unit-color" : undefined}>
           {offer && <span className="unit-label">القطعة 1</span>}
           <div className="color-options">
@@ -395,8 +407,8 @@ export function OrderForm(p: Props) {
       </fieldset>
       )}
 
-      {offer ? (
-        <input type="hidden" name="quantity" value={offer.quantity} />
+      {offer || isBundle ? (
+        <input type="hidden" name="quantity" value={offer ? offer.quantity : 1} />
       ) : (
         <div className="field">
           <label htmlFor="quantity">الكمية</label>
@@ -448,7 +460,7 @@ export function OrderForm(p: Props) {
                   {...a11y("zone")}
                 />
                 <span className="zone-name">{z.label}</span>
-                <span className="zone-fee">{deliveryIncluded ? (offer ? "مشمول في العرض" : "مشمول في السعر") : z.feeCents ? `+ ${money(z.feeCents, p.currency)}` : "مشمول في السعر"}</span>
+                <span className="zone-fee">{deliveryIncluded ? (offer || isBundle ? "مشمول في العرض" : "مشمول في السعر") : z.feeCents ? `+ ${money(z.feeCents, p.currency)}` : "مشمول في السعر"}</span>
               </label>
             ))}
           </div>
@@ -519,12 +531,12 @@ export function OrderForm(p: Props) {
 
       <div className="summary" aria-live="polite">
         <div>
-          <span>{offer ? offer.title : isRack ? `${p.rack!.name} × ${qty}` : `السعر × ${qty}`}</span>
+          <span>{isBundle ? p.bundle!.title : offer ? offer.title : isRack ? `${p.rack!.name} × ${qty}` : `السعر × ${qty}`}</span>
           <span>{money(subtotal, p.currency)}</span>
         </div>
         <div>
           <span>التوصيل</span>
-          <span>{deliveryIncluded ? (offer ? "مشمول في العرض" : "مشمول في السعر") : !zone ? "اختر المنطقة" : fee === 0 ? (zoneFeeCents === 0 ? "مشمول في السعر" : "مجاني لهذا الطلب") : money(fee, p.currency)}</span>
+          <span>{deliveryIncluded ? (offer || isBundle ? "مشمول في العرض" : "مشمول في السعر") : !zone ? "اختر المنطقة" : fee === 0 ? (zoneFeeCents === 0 ? "مشمول في السعر" : "مجاني لهذا الطلب") : money(fee, p.currency)}</span>
         </div>
         <div className="summary-total">
           <span>الإجمالي عند الاستلام</span>

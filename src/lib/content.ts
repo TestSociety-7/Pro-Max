@@ -307,7 +307,7 @@ export const DEFAULT_RACK: RackContent = {
   enabled: true,
   name: "منشر الغسيل الكهربائي",
   whatsappTitle: "منشر الغسيل الكهربائي",
-  price: 320,
+  price: 350,
   includesDelivery: true,
   badge: "عرض لفترة محدودة",
   availability: "in_stock",
@@ -328,4 +328,29 @@ export const DEFAULT_RACK: RackContent = {
 
 export function rackOrderable(r: RackContent, s: StoreSettings): boolean {
   return r.enabled && r.availability === "in_stock" && r.price > 0 && isValidCurrency(s.currencyCode);
+}
+
+/* ------------------------ bundle: rack + salad maker -------------------- */
+
+/** One price for the drying rack and the salad maker together (Black Friday, 2026-11-27). */
+export type BundleContent = {
+  active: boolean;
+  title: string;
+  price: number; // major units, both devices together
+  includesDelivery: boolean;
+  badge: string;
+  endsAt: string; // "" or YYYY-MM-DD
+};
+
+export const DEFAULT_BUNDLE: BundleContent = {
+  active: true,
+  title: "عرض الجمعة السوداء: المنشر + ماكنة السلطة",
+  price: 600,
+  includesDelivery: true,
+  badge: "Black Friday",
+  endsAt: "",
+};
+
+export function bundleLive(b: BundleContent, now = Date.now()): boolean {
+  return b.active && b.price > 0 && !!b.title.trim() && (!b.endsAt || now < offerEndMs(b.endsAt));
 }

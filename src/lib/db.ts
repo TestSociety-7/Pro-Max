@@ -12,6 +12,8 @@ import {
   type Offer,
   DEFAULT_RACK,
   type RackContent,
+  DEFAULT_BUNDLE,
+  type BundleContent,
 } from "./content";
 
 // Storage adapter. Works with either:
@@ -240,6 +242,12 @@ export async function getRack(): Promise<RackContent> {
 }
 export async function saveRack(r: RackContent) {
   await writeContent("rack", r);
+}
+export async function getBundle(): Promise<BundleContent> {
+  return withDefaults(DEFAULT_BUNDLE, await readContent("bundle"));
+}
+export async function saveBundle(b: BundleContent) {
+  await writeContent("bundle", b);
 }
 
 /* ----------------------------- orders ---------------------------------- */

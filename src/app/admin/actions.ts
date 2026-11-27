@@ -29,6 +29,7 @@ import {
   updateOrderStatus,
   getRack,
   saveRack,
+  saveBundle,
 } from "@/lib/db";
 import {
   cleanOffers,
@@ -40,6 +41,7 @@ import {
   type StoreSettings,
   formatMoney,
   type RackContent,
+  type BundleContent,
 } from "@/lib/content";
 import { notifyAdmins, vapidPublicKey } from "@/lib/push";
 
@@ -344,4 +346,29 @@ export async function sendTestPush(): Promise<string> {
   if (r.sent) return `تم الإرسال إلى ${r.sent} ${r.sent === 1 ? "جهاز" : "أجهزة"}.${r.failed ? ` تعذّر الإرسال إلى ${r.failed}.` : ""}`;
   if (r.removed) return "انتهت صلاحية تفعيل الإشعارات على جهازك. اضغط زر الجرس 🔔 مرة أخرى لتفعيلها.";
   return "تعذّر إرسال الإشعار الآن. حاول مرة أخرى بعد قليل.";
+}
+
+/** Admin → Offers: the rack + salad maker bundle. */
+export async function updateBundle(_prev: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  const errors: Record<string, string> = {};
+  const endsAt = s(fd, "endsAt", 10);
+  const next: BundleContent = {
+    active: fd.get("active") === "on",
+    title: s(fd, "title", 80),
+    price: num(fd, "price", errors),
+    includesDelivery: fd.get("includesDelivery") === "on",
+    badge: s(fd, "badge", 30),
+    endsAt: /^\d{4}-\d{2}-\d{2}$/.test(endsAt) ? endsAt : "",
+  };
+  if (next.active && !next.title) errors.title = "اكتب اسم العرض.";
+  if (next.active && next.price <= 0) errors.price = "اكتب سعر العرض.";
+  if (Object.keys(errors).length) return { message: "صحّح الحقول المحددة باللون الأحمر.", errors };
+  try {
+    await saveBundle(next);
+  } catch {
+    return { ok: false, message: "تعذّر الحفظ الآن. حاول مرة أخرى بعد قليل." };
+  }
+  revalidatePath("/", "layout");
+  return { ok: true, message: next.active ? "تم حفظ عرض المنشر + ماكنة السلطة وهو يظهر في المتجر." : "تم الحفظ. العرض متوقف." };
 }
