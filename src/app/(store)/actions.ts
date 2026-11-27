@@ -183,6 +183,7 @@ export async function placeOrder(_prev: OrderState, fd: FormData): Promise<Order
         `📞 الهاتف: ${order.phone}`,
         `🏙 المدينة / البلدة: ${input.area.trim()}`,
         `📍 العنوان: ${order.address}`,
+        `💰 السعر: ${order.totalCents / 100} ₪ شامل التوصيل`,
       ]),
     };
   } catch (err) {
@@ -258,6 +259,7 @@ async function placeRackOrder(
         `📞 الهاتف: ${order.phone}`,
         `🏙 المدينة / البلدة: ${input.area.trim()}`,
         `📍 العنوان: ${order.address}`,
+        `💰 السعر: ${order.totalCents / 100} ₪ شامل التوصيل`,
       ]),
     };
   } catch (err) {
