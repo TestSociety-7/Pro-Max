@@ -64,7 +64,10 @@ export async function startSession() {
   (await cookies()).set(COOKIE, value, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    // "lax" so the cookie is also sent when the admin is opened from a link in
+    // another app (WhatsApp, a notification, the home-screen icon). With "strict"
+    // those visits arrived without the cookie and showed the login page.
+    sameSite: "lax",
     path: "/",
     maxAge: SESSION_HOURS * 3600,
   });
@@ -105,8 +108,11 @@ export async function isAdmin(): Promise<boolean> {
   if (!s) return false;
   try {
     return await adminSessionValid(s.sid);
-  } catch {
-    return false;
+  } catch (e) {
+    // A brief database hiccup must not sign the owner out. The cookie is signed
+    // and unexpired, so keep them in; a real logout still deletes the cookie.
+    console.error("admin session check failed, keeping signed-in cookie:", e);
+    return true;
   }
 }
 
